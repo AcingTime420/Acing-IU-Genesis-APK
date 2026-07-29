@@ -1,0 +1,6 @@
+{
+  "name": "Acing IU: Genesis",
+  "description": "Unified security-first platform for Android research, firmware analysis, device management, and AI-assisted threat intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

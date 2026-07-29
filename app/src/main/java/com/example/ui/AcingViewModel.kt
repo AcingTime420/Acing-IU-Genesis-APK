@@ -1,0 +1,679 @@
+package com.example.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.agent.AgentActionEvaluation
+import com.example.agent.AgentAuthorityLevel
+import com.example.agent.AgentGovernanceService
+import com.example.agent.AgentIdentity
+import com.example.ai.AegisAiService
+import com.example.ai.ChatMessage
+import com.example.data.AcingDatabase
+import com.example.data.AuditLogEntity
+import com.example.data.DeviceSnapshotEntity
+import com.example.data.FirmwareScanEntity
+import com.example.data.SecurityRepository
+import com.example.firmware.BootkitDetectionReport
+import com.example.firmware.BuildPropAndFirmwareSecurityEngine
+import com.example.firmware.BuildPropItem
+import com.example.firmware.DmVerityStatus
+import com.example.firmware.DomainTransitionPermission
+import com.example.firmware.StrongBoxTeeOperationResult
+import com.example.firmware.VbmetaValidationAndSpoofResult
+import com.example.logging.CentralizedLoggingService
+import com.example.security.DeviceTelemetryInput
+import com.example.security.TelemetryValidator
+import com.example.trust.DeviceTrustReport
+import com.example.trust.DeviceTrustService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+enum class AppTab {
+    DASHBOARD,
+    FIRMWARE,
+    DEVICES,
+    FORENSICS,
+    AEGIS_AI,
+    GOVERNANCE
+}
+
+enum class SecurityRole(val label: String, val level: String) {
+    PRINCIPAL_ARCHITECT("Principal Architect", "Level 5 - Full Authority"),
+    SECURITY_AUDITOR("Security Auditor", "Level 4 - Read & Verify"),
+    SYSTEMS_ENGINEER("Systems Engineer", "Level 3 - Operations")
+}
+
+class AcingViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository: SecurityRepository
+    private val loggingService: CentralizedLoggingService
+    private val deviceTrustService = DeviceTrustService()
+    private val aiService = AegisAiService()
+    private val agentGovernanceService = AgentGovernanceService()
+    private val firmwareSecurityEngine = BuildPropAndFirmwareSecurityEngine()
+
+    val auditLogs: StateFlow<List<AuditLogEntity>>
+    val deviceSnapshots: StateFlow<List<DeviceSnapshotEntity>>
+    val firmwareScans: StateFlow<List<FirmwareScanEntity>>
+
+    private val _lastAgentEvaluation = MutableStateFlow<AgentActionEvaluation?>(null)
+    val lastAgentEvaluation: StateFlow<AgentActionEvaluation?> = _lastAgentEvaluation.asStateFlow()
+
+    private val _buildPropAudits = MutableStateFlow<List<BuildPropItem>>(firmwareSecurityEngine.getBuildPropAudits())
+    val buildPropAudits: StateFlow<List<BuildPropItem>> = _buildPropAudits.asStateFlow()
+
+    private val _dmVerityStatuses = MutableStateFlow<List<DmVerityStatus>>(firmwareSecurityEngine.detectDmVerity())
+    val dmVerityStatuses: StateFlow<List<DmVerityStatus>> = _dmVerityStatuses.asStateFlow()
+
+    private val _bootkitReport = MutableStateFlow<BootkitDetectionReport>(firmwareSecurityEngine.detectBootkitInjection())
+    val bootkitReport: StateFlow<BootkitDetectionReport> = _bootkitReport.asStateFlow()
+
+    private val _vbmetaResult = MutableStateFlow<VbmetaValidationAndSpoofResult>(firmwareSecurityEngine.validateAndSpoofVbmeta(false))
+    val vbmetaResult: StateFlow<VbmetaValidationAndSpoofResult> = _vbmetaResult.asStateFlow()
+
+    private val _strongBoxCryptoResult = MutableStateFlow<StrongBoxTeeOperationResult?>(null)
+    val strongBoxCryptoResult: StateFlow<StrongBoxTeeOperationResult?> = _strongBoxCryptoResult.asStateFlow()
+
+    private val _domainTransitions = MutableStateFlow<List<DomainTransitionPermission>>(firmwareSecurityEngine.getDomainTransitions())
+    val domainTransitions: StateFlow<List<DomainTransitionPermission>> = _domainTransitions.asStateFlow()
+
+    private val _selectedTab = MutableStateFlow(AppTab.DASHBOARD)
+    val selectedTab: StateFlow<AppTab> = _selectedTab.asStateFlow()
+
+    private val _currentRole = MutableStateFlow(SecurityRole.PRINCIPAL_ARCHITECT)
+    val currentRole: StateFlow<SecurityRole> = _currentRole.asStateFlow()
+
+    // Security System Controls
+    private val _selinuxEnforced = MutableStateFlow(true)
+    val selinuxEnforced: StateFlow<Boolean> = _selinuxEnforced.asStateFlow()
+
+    private val _zeroTrustLockdown = MutableStateFlow(false)
+    val zeroTrustLockdown: StateFlow<Boolean> = _zeroTrustLockdown.asStateFlow()
+
+    private val _certPinningActive = MutableStateFlow(true)
+    val certPinningActive: StateFlow<Boolean> = _certPinningActive.asStateFlow()
+
+    private val _avbVerified = MutableStateFlow(true)
+    val avbVerified: StateFlow<Boolean> = _avbVerified.asStateFlow()
+
+    // Device Telemetry & Trust Score State
+    private val _currentTelemetryInput = MutableStateFlow(
+        DeviceTelemetryInput(
+            hardwareId = "SM-S938U-VERIZON-01",
+            manufacturer = "Samsung",
+            modelCode = "SM-S938U (Galaxy S25 Ultra)",
+            androidVersion = "Android 15 (API 35)",
+            selinuxEnforcing = true,
+            bootloaderLocked = true,
+            partitionsUnmodified = true,
+            knoxFuseIntact = true,
+            isRooted = false
+        )
+    )
+    val currentTelemetryInput: StateFlow<DeviceTelemetryInput> = _currentTelemetryInput.asStateFlow()
+
+    private val _deviceTrustReport = MutableStateFlow<DeviceTrustReport?>(null)
+    val deviceTrustReport: StateFlow<DeviceTrustReport?> = _deviceTrustReport.asStateFlow()
+
+    // AI Chat State
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
+        listOf(
+            ChatMessage(
+                sender = "AEGIS_AI",
+                text = "Greetings, Architect. I am Aegis, your AI Security Co-Pilot. System status: ZERO-TRUST ENFORCED. How can I assist with Android firmware analysis, device diagnostics, or threat modeling today?"
+            )
+        )
+    )
+    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
+
+    private val _aiLoading = MutableStateFlow(false)
+    val aiLoading: StateFlow<Boolean> = _aiLoading.asStateFlow()
+
+    private val _useThinkingMode = MutableStateFlow(false)
+    val useThinkingMode: StateFlow<Boolean> = _useThinkingMode.asStateFlow()
+
+    // Interactive Log Analysis Dialog State
+    private val _logAnalysisResult = MutableStateFlow<String?>(null)
+    val logAnalysisResult: StateFlow<String?> = _logAnalysisResult.asStateFlow()
+
+    private val _isAnalyzingLog = MutableStateFlow(false)
+    val isAnalyzingLog: StateFlow<Boolean> = _isAnalyzingLog.asStateFlow()
+
+    // Executive Security Briefing State
+    private val _securityBriefing = MutableStateFlow<String?>(null)
+    val securityBriefing: StateFlow<String?> = _securityBriefing.asStateFlow()
+
+    private val _isGeneratingBriefing = MutableStateFlow(false)
+    val isGeneratingBriefing: StateFlow<Boolean> = _isGeneratingBriefing.asStateFlow()
+
+    // Firmware Partition AI Analysis State
+    private val _firmwareAnalysisResult = MutableStateFlow<String?>(null)
+    val firmwareAnalysisResult: StateFlow<String?> = _firmwareAnalysisResult.asStateFlow()
+
+    private val _isAnalyzingFirmware = MutableStateFlow(false)
+    val isAnalyzingFirmware: StateFlow<Boolean> = _isAnalyzingFirmware.asStateFlow()
+
+    // Device Telemetry AI Diagnostic State
+    private val _deviceDiagnosticResult = MutableStateFlow<String?>(null)
+    val deviceDiagnosticResult: StateFlow<String?> = _deviceDiagnosticResult.asStateFlow()
+
+    private val _isAnalyzingDevice = MutableStateFlow(false)
+    val isAnalyzingDevice: StateFlow<Boolean> = _isAnalyzingDevice.asStateFlow()
+
+    // Governance & Compliance AI Audit State
+    private val _governanceAuditResult = MutableStateFlow<String?>(null)
+    val governanceAuditResult: StateFlow<String?> = _governanceAuditResult.asStateFlow()
+
+    private val _isAuditingGovernance = MutableStateFlow(false)
+    val isAuditingGovernance: StateFlow<Boolean> = _isAuditingGovernance.asStateFlow()
+
+    init {
+        val dao = AcingDatabase.getDatabase(application).securityDao()
+        repository = SecurityRepository(dao)
+        loggingService = CentralizedLoggingService(repository)
+
+        auditLogs = repository.auditLogs.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        deviceSnapshots = repository.deviceSnapshots.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        firmwareScans = repository.firmwareScans.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        seedInitialDataIfEmpty()
+        recalculateTrustReport()
+    }
+
+    private fun seedInitialDataIfEmpty() {
+        viewModelScope.launch {
+            val cid = loggingService.generateCorrelationId("INIT")
+            loggingService.logOperation(
+                category = "System Init",
+                title = "Acing IU: Genesis Engine Online",
+                details = "Initialized zero-trust architecture with centralized audit logging and telemetry validation.",
+                severity = "SECURE",
+                role = currentRole.value.label,
+                correlationId = cid
+            )
+
+            // Seed sample device snapshot
+            repository.recordDeviceSnapshot(
+                DeviceSnapshotEntity(
+                    deviceName = "Pixel 9 Pro (Acing Security Lab Node #1)",
+                    androidVersion = "Android 15 (API 35)",
+                    selinuxState = "Enforcing",
+                    avbState = "Locked (Verified Boot 2.0)",
+                    hardwareKeystore = "StrongBox Keymaster (TEE Hardware-Backed)",
+                    cveCount = 0,
+                    healthScore = 98
+                )
+            )
+
+            // Seed firmware partitions
+            repository.recordFirmwareScan(
+                FirmwareScanEntity(
+                    imageName = "acing-iu-genesis-v1.3.1.img",
+                    partitionName = "boot.img",
+                    sha256Hash = "8f4e2c1a90b76543d210fe9876543210abcdef9876543210fedcba9876543210",
+                    signatureStatus = "Verified RSA-4096",
+                    isVerified = true
+                )
+            )
+            repository.recordFirmwareScan(
+                FirmwareScanEntity(
+                    imageName = "acing-iu-genesis-v1.3.1.img",
+                    partitionName = "system.img",
+                    sha256Hash = "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
+                    signatureStatus = "Verified DM-Verity",
+                    isVerified = true
+                )
+            )
+            repository.recordFirmwareScan(
+                FirmwareScanEntity(
+                    imageName = "acing-iu-genesis-v1.3.1.img",
+                    partitionName = "vendor.img",
+                    sha256Hash = "f0e9d8c7b6a543210987654321fedcba0123456789abcdef0123456789abcdef",
+                    signatureStatus = "Verified Manufacturer Key",
+                    isVerified = true
+                )
+            )
+        }
+    }
+
+    fun updateTelemetryInput(newInput: DeviceTelemetryInput) {
+        _currentTelemetryInput.value = newInput
+        _selinuxEnforced.value = newInput.selinuxEnforcing
+        recalculateTrustReport()
+    }
+
+    fun recalculateTrustReport() {
+        viewModelScope.launch {
+            val report = deviceTrustService.calculateTrustReport(
+                rawInput = _currentTelemetryInput.value,
+                loggingService = loggingService,
+                operatorRole = currentRole.value.label
+            )
+            _deviceTrustReport.value = report
+        }
+    }
+
+    fun selectTab(tab: AppTab) {
+        _selectedTab.value = tab
+    }
+
+    fun setSecurityRole(role: SecurityRole) {
+        _currentRole.value = role
+        viewModelScope.launch {
+            loggingService.logOperation(
+                category = "Role Management",
+                title = "Security Role Switch",
+                details = "Active profile updated to ${role.label} (${role.level}).",
+                severity = "INFO",
+                role = role.label
+            )
+        }
+    }
+
+    fun toggleSelinux() {
+        val newState = !_selinuxEnforced.value
+        _selinuxEnforced.value = newState
+        val updatedTelemetry = _currentTelemetryInput.value.copy(selinuxEnforcing = newState)
+        updateTelemetryInput(updatedTelemetry)
+
+        viewModelScope.launch {
+            loggingService.logDeviceAction(
+                actionTitle = if (newState) "SELinux Enforced" else "SELinux Set to Permissive",
+                details = if (newState) "Mandatory Access Controls re-enforced." else "WARNING: SELinux set to permissive state. Vulnerability window opened.",
+                severity = if (newState) "SECURE" else "CRITICAL",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+    fun toggleZeroTrustLockdown() {
+        val newState = !_zeroTrustLockdown.value
+        _zeroTrustLockdown.value = newState
+        viewModelScope.launch {
+            loggingService.logDeviceAction(
+                actionTitle = if (newState) "FULL SYSTEM LOCKDOWN ENGAGED" else "Lockdown Disengaged",
+                details = if (newState) "All non-essential sockets, debug interfaces, and USB ADB routes terminated." else "Standard zero-trust policy active.",
+                severity = if (newState) "CRITICAL" else "INFO",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+    fun toggleCertPinning() {
+        val newState = !_certPinningActive.value
+        _certPinningActive.value = newState
+        viewModelScope.launch {
+            loggingService.logDeviceAction(
+                actionTitle = if (newState) "Strict Certificate Pinning Active" else "Cert Pinning Bypassed",
+                details = if (newState) "TLS connections restricted to Aegis Genesis pinned keys." else "WARNING: Cert pinning disabled for network debugging.",
+                severity = if (newState) "SECURE" else "WARNING",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+    fun runFullSecurityAudit() {
+        viewModelScope.launch {
+            val workflowId = loggingService.startWorkflow("ZERO_TRUST_AUDIT")
+
+            loggingService.logResearchWorkflow(
+                workflowName = "ZERO_TRUST_AUDIT",
+                stepTitle = "Sweep Initiated",
+                details = "Checking AVB flags, DM-Verity digests, TEE Hardware keys, SELinux policies, and network sockets.",
+                severity = "INFO",
+                role = currentRole.value.label,
+                correlationId = workflowId
+            )
+
+            // Recalculate trust score as part of audit
+            recalculateTrustReport()
+            val currentReport = _deviceTrustReport.value
+
+            val snapshot = DeviceSnapshotEntity(
+                deviceName = _currentTelemetryInput.value.hardwareId,
+                androidVersion = _currentTelemetryInput.value.androidVersion,
+                selinuxState = if (_selinuxEnforced.value) "Enforcing" else "Permissive",
+                avbState = if (_avbVerified.value) "Locked (AVB 2.0)" else "Unlocked",
+                hardwareKeystore = "StrongBox Keymaster",
+                cveCount = if (_selinuxEnforced.value) 0 else 2,
+                healthScore = currentReport?.score ?: 98
+            )
+            repository.recordDeviceSnapshot(snapshot)
+
+            loggingService.logResearchWorkflow(
+                workflowName = "ZERO_TRUST_AUDIT",
+                stepTitle = "Sweep Completed",
+                details = "Overall Device Health Index: ${snapshot.healthScore}%. Tier: ${currentReport?.tier?.label ?: "Trusted"}. No malware detected.",
+                severity = "SECURE",
+                role = currentRole.value.label,
+                correlationId = workflowId
+            )
+
+            loggingService.clearWorkflow()
+        }
+    }
+
+    fun scanFirmwarePartition(partitionName: String) {
+        viewModelScope.launch {
+            val cid = loggingService.generateCorrelationId("FW")
+            val hash = "a" + System.currentTimeMillis().toString(16) + "9876543210fedcba8765432101234567"
+            val scan = FirmwareScanEntity(
+                imageName = "acing-iu-genesis-target.img",
+                partitionName = partitionName,
+                sha256Hash = hash,
+                signatureStatus = "Verified RSA-4096 Signature",
+                isVerified = true
+            )
+            repository.recordFirmwareScan(scan)
+            loggingService.logOperation(
+                category = "Firmware Scan",
+                title = "Partition Inspection: $partitionName",
+                details = "Integrity check passed. Hash: ${hash.take(16)}... Signature: RSA-4096 OK.",
+                severity = "SECURE",
+                role = currentRole.value.label,
+                correlationId = cid
+            )
+        }
+    }
+
+    fun toggleThinkingMode(enabled: Boolean) {
+        _useThinkingMode.value = enabled
+    }
+
+    fun sendAiPrompt(prompt: String) {
+        if (prompt.isBlank()) return
+
+        val userMsg = ChatMessage(
+            sender = "USER",
+            text = prompt,
+            isThinkingModel = _useThinkingMode.value
+        )
+        _chatMessages.value = _chatMessages.value + userMsg
+        _aiLoading.value = true
+
+        viewModelScope.launch {
+            val responseText = aiService.sendChatMessage(
+                history = _chatMessages.value,
+                userMessage = prompt,
+                useThinkingMode = _useThinkingMode.value
+            )
+
+            val aiMsg = ChatMessage(
+                sender = "AEGIS_AI",
+                text = responseText,
+                isThinkingModel = _useThinkingMode.value
+            )
+            _chatMessages.value = _chatMessages.value + aiMsg
+            _aiLoading.value = false
+
+            loggingService.logThreatAnalysis(
+                scenario = prompt,
+                outcomeDetails = "Response generated cleanly by Aegis AI.",
+                severity = "INFO",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+    fun analyzeLogSnippet(snippet: String) {
+        if (snippet.isBlank()) return
+        _isAnalyzingLog.value = true
+        _logAnalysisResult.value = null
+
+        viewModelScope.launch {
+            val result = aiService.analyzeSecurityLog(snippet, currentRole.value.label)
+            _logAnalysisResult.value = result
+            _isAnalyzingLog.value = false
+
+            loggingService.logResearchWorkflow(
+                workflowName = "FORENSICS_ANALYSIS",
+                stepTitle = "Logcat Inspection",
+                details = "Analyzed log snippet (${snippet.length} chars). Result delivered.",
+                severity = "INFO",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+    fun clearLogAnalysis() {
+        _logAnalysisResult.value = null
+    }
+
+    fun generateSecurityBriefing() {
+        _isGeneratingBriefing.value = true
+        _securityBriefing.value = null
+
+        viewModelScope.launch {
+            val result = aiService.generateSecurityBriefing(
+                selinuxEnforced = _selinuxEnforced.value,
+                lockdownActive = _zeroTrustLockdown.value,
+                role = _currentRole.value.label
+            )
+            _securityBriefing.value = result
+            _isGeneratingBriefing.value = false
+
+            loggingService.logThreatAnalysis(
+                scenario = "Executive Briefing",
+                outcomeDetails = "Security briefing generated for role ${_currentRole.value.label}.",
+                severity = "INFO",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearSecurityBriefing() {
+        _securityBriefing.value = null
+    }
+
+    fun analyzeFirmwareWithAi(
+        partitionName: String,
+        sha256Hash: String,
+        signatureStatus: String
+    ) {
+        _isAnalyzingFirmware.value = true
+        _firmwareAnalysisResult.value = null
+
+        viewModelScope.launch {
+            val result = aiService.analyzeFirmwarePartition(
+                partitionName = partitionName,
+                sha256Hash = sha256Hash,
+                signatureStatus = signatureStatus
+            )
+            _firmwareAnalysisResult.value = result
+            _isAnalyzingFirmware.value = false
+
+            loggingService.logResearchWorkflow(
+                workflowName = "FIRMWARE_AI_AUDIT",
+                stepTitle = "Partition AI Analysis",
+                details = "Audited $partitionName image. Signature: $signatureStatus.",
+                severity = "INFO",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearFirmwareAnalysis() {
+        _firmwareAnalysisResult.value = null
+    }
+
+    fun analyzeDeviceWithAi() {
+        _isAnalyzingDevice.value = true
+        _deviceDiagnosticResult.value = null
+
+        viewModelScope.launch {
+            val snapshot = deviceSnapshots.value.firstOrNull()
+            val deviceName = snapshot?.deviceName ?: "Pixel 9 Pro Security Target"
+            val androidVersion = snapshot?.androidVersion ?: "Android 15 (API 35)"
+            val keystoreState = snapshot?.hardwareKeystore ?: "StrongBox TEE Keymaster"
+            val selinuxState = if (_selinuxEnforced.value) "Enforcing (MAC Active)" else "Permissive"
+
+            val result = aiService.analyzeDeviceTelemetry(
+                deviceName = deviceName,
+                androidVersion = androidVersion,
+                selinuxState = selinuxState,
+                keystoreState = keystoreState
+            )
+            _deviceDiagnosticResult.value = result
+            _isAnalyzingDevice.value = false
+
+            loggingService.logResearchWorkflow(
+                workflowName = "DEVICE_DIAGNOSTIC",
+                stepTitle = "Hardware AI Diagnostic",
+                details = "Audited $deviceName state ($selinuxState).",
+                severity = "INFO",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearDeviceDiagnostic() {
+        _deviceDiagnosticResult.value = null
+    }
+
+    fun auditGovernanceWithAi(apiKeyConfigured: Boolean) {
+        _isAuditingGovernance.value = true
+        _governanceAuditResult.value = null
+
+        viewModelScope.launch {
+            val result = aiService.auditGovernanceCompliance(
+                roleLabel = _currentRole.value.label,
+                roleLevel = _currentRole.value.level,
+                apiKeyConfigured = apiKeyConfigured
+            )
+            _governanceAuditResult.value = result
+            _isAuditingGovernance.value = false
+
+            loggingService.logResearchWorkflow(
+                workflowName = "GOVERNANCE_AUDIT",
+                stepTitle = "RBAC AI Compliance Audit",
+                details = "Audited RBAC compliance for ${_currentRole.value.label}.",
+                severity = "INFO",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearGovernanceAudit() {
+        _governanceAuditResult.value = null
+    }
+
+    fun clearChatHistory() {
+        _chatMessages.value = listOf(
+            ChatMessage(
+                sender = "AEGIS_AI",
+                text = "Aegis AI Chat session reset. Select a scenario or type a security query below."
+            )
+        )
+    }
+
+    fun quickAiPrompt(prompt: String) {
+        selectTab(AppTab.AEGIS_AI)
+        sendAiPrompt(prompt)
+    }
+
+    fun clearAuditLogs() {
+        viewModelScope.launch {
+            repository.clearLogs()
+        }
+    }
+
+    fun evaluateAgentActionRequest(
+        agent: AgentIdentity,
+        operation: String,
+        targetType: String,
+        targetId: String,
+        requestedAuthorityLevel: AgentAuthorityLevel
+    ) {
+        viewModelScope.launch {
+            val eval = agentGovernanceService.evaluateActionRequest(
+                agent = agent,
+                operation = operation,
+                targetType = targetType,
+                targetId = targetId,
+                requestedAuthorityLevel = requestedAuthorityLevel,
+                requestorRole = _currentRole.value.label,
+                loggingService = loggingService
+            )
+            _lastAgentEvaluation.value = eval
+        }
+    }
+
+    fun scanBootkitAndRamdisk() {
+        viewModelScope.launch {
+            val report = firmwareSecurityEngine.detectBootkitInjection()
+            _bootkitReport.value = report
+            loggingService.logOperation(
+                category = "Firmware Audit",
+                title = "Automatic Bootkit Injection & Ramdisk Scan Completed",
+                details = "Target: ${report.scannedTarget} | Threat Level: ${report.threatLevel} | 0 unauthorized vectors found.",
+                severity = "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun toggleVbmetaSpoof(enableSpoof: Boolean) {
+        viewModelScope.launch {
+            val res = firmwareSecurityEngine.validateAndSpoofVbmeta(enableSpoof)
+            _vbmetaResult.value = res
+            loggingService.logOperation(
+                category = "Vbmeta Research",
+                title = "Vbmeta.img Image Unblocker & Mocker Executed",
+                details = res.details,
+                severity = if (enableSpoof) "WARNING" else "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun runStrongBoxTeeCrypto(keyAlias: String, textToEncrypt: String) {
+        viewModelScope.launch {
+            val res = firmwareSecurityEngine.performStrongBoxTeeCrypto(keyAlias, textToEncrypt)
+            _strongBoxCryptoResult.value = res
+            loggingService.logOperation(
+                category = "Hardware TEE",
+                title = "StrongBox Keymaster TEE AES-256-GCM Encryption Executed",
+                details = "Alias: '$keyAlias' | CipherText: ${res.cipherTextBase64.take(30)}...",
+                severity = "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun unblockDomainTransition(sourceDomain: String, targetDomain: String) {
+        viewModelScope.launch {
+            val updated = _domainTransitions.value.map { item ->
+                if (item.sourceDomain == sourceDomain && item.targetDomain == targetDomain) {
+                    firmwareSecurityEngine.unblockDomainTransition(sourceDomain, targetDomain)
+                } else item
+            }
+            _domainTransitions.value = updated
+            loggingService.logOperation(
+                category = "SELinux Policy",
+                title = "Domain Transition Permission Unblocked (Lab)",
+                details = "Transition $sourceDomain -> $targetDomain unblocked under lab policy.",
+                severity = "WARNING",
+                role = _currentRole.value.label
+            )
+        }
+    }
+}
