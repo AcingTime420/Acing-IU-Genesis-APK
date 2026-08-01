@@ -35,6 +35,12 @@ android {
         this.keyPassword = keyPassword
       }
     }
+    create("debugConfig") {
+      storeFile = file("${rootDir}/debug.keystore")
+      this.storePassword = "android"
+      keyAlias = "androiddebugkey"
+      this.keyPassword = "android"
+    }
   }
 
   buildTypes {
@@ -47,7 +53,7 @@ android {
       }
     }
     debug {
-      // Reverted to default Android Studio debug signing
+      signingConfig = signingConfigs.getByName("debugConfig")
     }
   }
   compileOptions {
@@ -66,6 +72,8 @@ android {
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
+  ignoreList.add("url_agent")
+  ignoreList.add("URL_AGENT")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
