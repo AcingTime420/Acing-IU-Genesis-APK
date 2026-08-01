@@ -12,7 +12,36 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+enum class ApiKeyStatus {
+    VALID_CONFIGURED,
+    MISSING_OR_PLACEHOLDER,
+    INVALID_FORMAT
+}
+
+data class ApiKeyValidationResult(
+    val status: ApiKeyStatus,
+    val isConfigured: Boolean,
+    val userMessage: String,
+    val maskedKey: String
+)
+
 class GeminiService {
+
+    fun validateApiKeyPresence(): ApiKeyValidationResult {
+        val result = GeminiConfigValidator.validateConfig()
+        return ApiKeyValidationResult(
+            status = when (result.status) {
+                GeminiConfigStatus.CONFIGURED -> ApiKeyStatus.VALID_CONFIGURED
+                GeminiConfigStatus.INVALID_FORMAT -> ApiKeyStatus.INVALID_FORMAT
+                else -> ApiKeyStatus.MISSING_OR_PLACEHOLDER
+            },
+            isConfigured = !result.isFailSafeMode,
+            userMessage = result.userMessage,
+            maskedKey = result.maskedKey
+        )
+    }
+
+
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -204,20 +233,7 @@ class GeminiService {
 
         val genConfig = JSONObject()
         genConfig.put("temperature", 0.3)
-        if (useThinkingMode) {
-            val thinkingConfig = JSONObject()
-            thinkingConfig.put("thinkingLevel", "HIGH")
-            genConfig.put("thinkingConfig", thinkingConfig)
-        }
         root.put("generationConfig", genConfig)
-        
-        // Add Google Search grounding
-        val toolsArray = JSONArray()
-        val searchTool = JSONObject()
-        val googleSearch = JSONObject()
-        searchTool.put("googleSearch", googleSearch)
-        toolsArray.put(searchTool)
-        root.put("tools", toolsArray)
 
         var lastError = ""
 
@@ -249,8 +265,8 @@ class GeminiService {
                             }
                         } else {
                             lastError = bodyStr
-                            // Break immediately on fatal errors
-                            if (lastError.contains("403") || lastError.contains("401") || lastError.contains("404") || lastError.contains("API_KEY_INVALID") || lastError.lowercase().contains("invalid authentication credentials")) {
+                            // Break immediately on fatal authentication errors
+                            if (lastError.contains("API_KEY_INVALID") || lastError.lowercase().contains("invalid authentication credentials")) {
                                 break
                             }
                         }
@@ -299,20 +315,7 @@ class GeminiService {
 
         val genConfig = JSONObject()
         genConfig.put("temperature", 0.2)
-        if (enableThinkingHigh) {
-            val thinkingConfig = JSONObject()
-            thinkingConfig.put("thinkingLevel", "HIGH")
-            genConfig.put("thinkingConfig", thinkingConfig)
-        }
         root.put("generationConfig", genConfig)
-
-        // Add Google Search grounding
-        val toolsArray = JSONArray()
-        val searchTool = JSONObject()
-        val googleSearch = JSONObject()
-        searchTool.put("googleSearch", googleSearch)
-        toolsArray.put(searchTool)
-        root.put("tools", toolsArray)
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
 
@@ -351,13 +354,12 @@ class GeminiService {
             
             if (lowerError.contains("invalid authentication credentials") || 
                 lowerError.contains("api_key_invalid") || 
-                lowerError.contains("api key not valid") ||
-                rawError.contains("401") || rawError.contains("403")) {
+                lowerError.contains("api key not valid")) {
                 "Invalid Gemini API Key. Please configure a valid GEMINI_API_KEY in the AI Studio Secrets panel."
+            } else if (lowerError.contains("resource_exhausted") || lowerError.contains("quota") || lowerError.contains("429")) {
+                "Gemini API quota/rate limit reached. Please check your AI Studio usage/quota or try again shortly."
             } else if (lowerError.contains("503") || lowerError.contains("unavailable") || lowerError.contains("high demand")) {
                 "Gemini AI endpoint high demand (HTTP 503). Please try again later."
-            } else if (lowerError.contains("429") || lowerError.contains("resource_exhausted") || lowerError.contains("quota")) {
-                "Gemini API rate limit reached (HTTP 429). Please wait a moment."
             } else if (rawError.contains("404")) {
                 "Model endpoint not found."
             } else if (rawError.contains("error") && rawError.contains("message")) {

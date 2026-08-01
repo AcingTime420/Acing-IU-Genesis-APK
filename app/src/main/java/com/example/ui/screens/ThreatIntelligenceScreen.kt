@@ -16,6 +16,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -76,6 +78,23 @@ fun ThreatIntelligenceScreen(viewModel: AcingViewModel) {
                 Spacer(modifier = Modifier.height(16.dp))
                 // Data Visualization Component
                 ThreatTrendChart()
+                Spacer(modifier = Modifier.height(16.dp))
+                val view = LocalView.current
+                var showAlert by remember { mutableStateOf(false) }
+                Button(
+                    onClick = {
+                        showAlert = true
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AegisDangerRed),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Scan for Critical Alerts", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                if (showAlert) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("CRITICAL: Rootkit detected in boot partition!", color = AegisDangerRed, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
             }
         }
     }
@@ -83,6 +102,23 @@ fun ThreatIntelligenceScreen(viewModel: AcingViewModel) {
 
 @Composable
 fun ThreatTrendChart() {
+                Spacer(modifier = Modifier.height(16.dp))
+                val view = LocalView.current
+                var showAlert by remember { mutableStateOf(false) }
+                Button(
+                    onClick = {
+                        showAlert = true
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AegisDangerRed),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Scan for Critical Alerts", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                if (showAlert) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("CRITICAL: Rootkit detected in boot partition!", color = AegisDangerRed, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                }
     Canvas(modifier = Modifier.fillMaxSize()) {
         val maxVal = 100f
         val points = listOf(20f, 45f, 30f, 80f, 65f, 90f)

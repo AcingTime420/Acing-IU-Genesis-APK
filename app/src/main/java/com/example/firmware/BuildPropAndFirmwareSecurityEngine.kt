@@ -1,7 +1,7 @@
 package com.example.firmware
 
 import java.security.MessageDigest
-import java.util.Base64
+import android.util.Base64
 import java.util.UUID
 
 data class BuildPropItem(
@@ -184,7 +184,7 @@ class BuildPropAndFirmwareSecurityEngine {
     fun performStrongBoxTeeCrypto(alias: String, plainText: String): StrongBoxTeeOperationResult {
         val digest = MessageDigest.getInstance("SHA-256")
         val hashedInput = digest.digest(plainText.toByteArray(Charsets.UTF_8))
-        val cipherText = Base64.getEncoder().encodeToString(hashedInput)
+        val cipherText = Base64.encodeToString(hashedInput, Base64.NO_WRAP)
 
         val certChain = listOf(
             "Subject: CN=Acing IU Genesis StrongBox Hardware Attestation Root CA",

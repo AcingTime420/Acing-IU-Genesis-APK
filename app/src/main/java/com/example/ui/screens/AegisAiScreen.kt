@@ -70,8 +70,10 @@ fun AegisAiScreen(
     val chatMessages by viewModel.chatMessages.collectAsState()
     val aiLoading by viewModel.aiLoading.collectAsState()
     val useThinkingMode by viewModel.useThinkingMode.collectAsState()
+    val apiKeyValidation by viewModel.apiKeyValidationState.collectAsState()
 
     var inputText by remember { mutableStateOf("") }
+    var showTroubleshootingTips by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(chatMessages.size) {
@@ -92,7 +94,18 @@ fun AegisAiScreen(
             icon = Icons.Default.SmartToy
         )
 
+        // Reusable AI Status & Diagnostic View
+        val configValidation = com.example.ai.GeminiConfigValidator.validateConfig()
+        com.example.ui.components.AegisAiStatusView(
+            validationResult = configValidation,
+            onRefreshStatus = { viewModel.refreshApiKeyStatus() }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         // Preset Prompt Chips Row
+
+
         val presetPrompts = listOf(
             "Audit AVB 2.0 Bootloader Locks",
             "Explain SELinux Policy Violations",

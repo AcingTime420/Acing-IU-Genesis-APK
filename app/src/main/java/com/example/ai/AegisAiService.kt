@@ -4,6 +4,11 @@ class AegisAiService {
 
     private val geminiService = GeminiService()
 
+    fun validateApiKeyPresence(): ApiKeyValidationResult {
+        return geminiService.validateApiKeyPresence()
+    }
+
+
     suspend fun generateSecurityBriefing(
         selinuxEnforced: Boolean,
         lockdownActive: Boolean,

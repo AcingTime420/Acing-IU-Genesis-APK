@@ -139,6 +139,25 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
     private val _useThinkingMode = MutableStateFlow(false)
     val useThinkingMode: StateFlow<Boolean> = _useThinkingMode.asStateFlow()
 
+    // API Key Diagnostic & Configuration State
+    private val _apiKeyValidationState = MutableStateFlow(aiService.validateApiKeyPresence())
+    val apiKeyValidationState: StateFlow<com.example.ai.ApiKeyValidationResult> = _apiKeyValidationState.asStateFlow()
+
+    fun refreshApiKeyStatus() {
+        val result = aiService.validateApiKeyPresence()
+        _apiKeyValidationState.value = result
+        viewModelScope.launch {
+            loggingService.logOperation(
+                category = "Secrets Diagnostic",
+                title = "GEMINI_API_KEY Health Check",
+                details = "Status: ${result.status} | Key: ${result.maskedKey}",
+                severity = if (result.isConfigured) "SECURE" else "WARNING",
+                role = currentRole.value.label
+            )
+        }
+    }
+
+
     // Interactive Log Analysis Dialog State
     private val _logAnalysisResult = MutableStateFlow<String?>(null)
     val logAnalysisResult: StateFlow<String?> = _logAnalysisResult.asStateFlow()
@@ -173,6 +192,12 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isAuditingGovernance = MutableStateFlow(false)
     val isAuditingGovernance: StateFlow<Boolean> = _isAuditingGovernance.asStateFlow()
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    fun setAuthenticated(auth: Boolean) {
+        _isAuthenticated.value = auth
+    }
 
     init {
         val dao = AcingDatabase.getDatabase(application).securityDao()
