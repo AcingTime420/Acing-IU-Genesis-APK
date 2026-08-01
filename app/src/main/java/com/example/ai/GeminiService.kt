@@ -126,7 +126,7 @@ class GeminiService {
         var lastError = ""
 
         for (model in modelsToTry) {
-            var currentBackoff = 300L
+            var currentBackoff = 2000L
             val maxAttempts = 3
 
             for (attempt in 1..maxAttempts) {
@@ -136,8 +136,8 @@ class GeminiService {
                 }
                 lastError = responseBody
 
-                // If error is non-retryable (403 invalid key or 404 model not found), break loop for this model
-                if (responseBody.contains("403") || responseBody.contains("API_KEY_INVALID")) {
+                // If error is non-retryable (401, 403 invalid key, or 404 model not found), break loop for this model
+                if (responseBody.contains("403") || responseBody.contains("401") || responseBody.contains("404") || responseBody.contains("API_KEY_INVALID") || responseBody.lowercase().contains("invalid authentication credentials")) {
                     break
                 }
 
@@ -214,7 +214,7 @@ class GeminiService {
         var lastError = ""
 
         for (model in modelsToTry) {
-            var currentBackoff = 300L
+            var currentBackoff = 2000L
             for (attempt in 1..2) {
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
                 try {
@@ -241,6 +241,10 @@ class GeminiService {
                             }
                         } else {
                             lastError = bodyStr
+                            // Break immediately on fatal errors
+                            if (lastError.contains("403") || lastError.contains("401") || lastError.contains("404") || lastError.contains("API_KEY_INVALID") || lastError.lowercase().contains("invalid authentication credentials")) {
+                                break
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -327,14 +331,19 @@ class GeminiService {
 
     private fun parseCleanErrorMessage(rawError: String): String {
         return try {
-            if (rawError.contains("503") || rawError.contains("UNAVAILABLE") || rawError.contains("high demand")) {
-                "Gemini AI endpoint high demand (HTTP 503)"
-            } else if (rawError.contains("429") || rawError.contains("RESOURCE_EXHAUSTED")) {
-                "Gemini API rate limit reached (HTTP 429)"
-            } else if (rawError.contains("403") || rawError.contains("API_KEY_INVALID")) {
-                "Invalid or unauthorized Gemini API key"
+            val lowerError = rawError.lowercase()
+            
+            if (lowerError.contains("invalid authentication credentials") || 
+                lowerError.contains("api_key_invalid") || 
+                lowerError.contains("api key not valid") ||
+                rawError.contains("401") || rawError.contains("403")) {
+                "Invalid Gemini API Key. Please configure a valid GEMINI_API_KEY in the AI Studio Secrets panel."
+            } else if (lowerError.contains("503") || lowerError.contains("unavailable") || lowerError.contains("high demand")) {
+                "Gemini AI endpoint high demand (HTTP 503). Please try again later."
+            } else if (lowerError.contains("429") || lowerError.contains("resource_exhausted") || lowerError.contains("quota")) {
+                "Gemini API rate limit reached (HTTP 429). Please wait a moment."
             } else if (rawError.contains("404")) {
-                "Model endpoint not found"
+                "Model endpoint not found."
             } else if (rawError.contains("error") && rawError.contains("message")) {
                 val json = JSONObject(rawError)
                 val errObj = json.optJSONObject("error")
