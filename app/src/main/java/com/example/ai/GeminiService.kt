@@ -210,6 +210,14 @@ class GeminiService {
             genConfig.put("thinkingConfig", thinkingConfig)
         }
         root.put("generationConfig", genConfig)
+        
+        // Add Google Search grounding
+        val toolsArray = JSONArray()
+        val searchTool = JSONObject()
+        val googleSearch = JSONObject()
+        searchTool.put("googleSearch", googleSearch)
+        toolsArray.put(searchTool)
+        root.put("tools", toolsArray)
 
         var lastError = ""
 
@@ -297,6 +305,14 @@ class GeminiService {
             genConfig.put("thinkingConfig", thinkingConfig)
         }
         root.put("generationConfig", genConfig)
+
+        // Add Google Search grounding
+        val toolsArray = JSONArray()
+        val searchTool = JSONObject()
+        val googleSearch = JSONObject()
+        searchTool.put("googleSearch", googleSearch)
+        toolsArray.put(searchTool)
+        root.put("tools", toolsArray)
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
 

@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -179,6 +181,9 @@ fun DashboardScreen(
             }
         }
 
+        item {
+            CentralNavigationHub(viewModel)
+        }
         item {
             MissionObjectiveCard()
         }
@@ -664,3 +669,58 @@ fun HeroCommandBanner(
     }
 }
 
+
+@Composable
+fun CentralNavigationHub(viewModel: AcingViewModel) {
+    SectionHeader(
+        title = "Platform Navigation",
+        subtitle = "Centralized hubs for analysis and security",
+        icon = Icons.Default.Dashboard
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        NavigationCard(
+            title = "Firmware Analysis",
+            icon = Icons.Default.FolderZip,
+            onClick = { viewModel.selectTab(com.example.ui.AppTab.FIRMWARE) },
+            modifier = Modifier.weight(1f)
+        )
+        NavigationCard(
+            title = "Threat Intel",
+            icon = Icons.Default.BugReport,
+            onClick = { viewModel.selectTab(com.example.ui.AppTab.THREAT_INTEL) },
+            modifier = Modifier.weight(1f)
+        )
+        NavigationCard(
+            title = "Device Security",
+            icon = Icons.Default.Security,
+            onClick = { viewModel.selectTab(com.example.ui.AppTab.DEVICE_SECURITY) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun NavigationCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = AegisSurface),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AegisBorder),
+        modifier = modifier.height(100.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = AegisPrimaryCyan, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = title, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AegisTextPrimary, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
+        }
+    }
+}

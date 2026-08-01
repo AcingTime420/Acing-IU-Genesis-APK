@@ -39,7 +39,9 @@ enum class AppTab {
     DEVICES,
     FORENSICS,
     AEGIS_AI,
-    GOVERNANCE
+    GOVERNANCE,
+    THREAT_INTEL,
+    DEVICE_SECURITY
 }
 
 enum class SecurityRole(val label: String, val level: String) {
@@ -588,6 +590,18 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
     fun quickAiPrompt(prompt: String) {
         selectTab(AppTab.AEGIS_AI)
         sendAiPrompt(prompt)
+    }
+
+    fun logEvent(category: String, title: String, details: String) {
+        viewModelScope.launch {
+            loggingService.logOperation(
+                category = category,
+                title = title,
+                details = details,
+                severity = "INFO",
+                role = _currentRole.value.label
+            )
+        }
     }
 
     fun clearAuditLogs() {

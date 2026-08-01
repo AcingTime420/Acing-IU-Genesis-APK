@@ -54,6 +54,8 @@ import com.example.ui.screens.DevicesScreen
 import com.example.ui.screens.FirmwareScreen
 import com.example.ui.screens.ForensicsScreen
 import com.example.ui.screens.GovernanceScreen
+import com.example.ui.screens.DeviceSecurityScreen
+import com.example.ui.screens.ThreatIntelligenceScreen
 import com.example.ui.theme.AegisBadgeIndigoBg
 import com.example.ui.theme.AegisBadgeIndigoText
 import com.example.ui.theme.AegisBorder
@@ -211,6 +213,8 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                 AppTab.FORENSICS -> ForensicsScreen(viewModel = viewModel)
                 AppTab.AEGIS_AI -> AegisAiScreen(viewModel = viewModel)
                 AppTab.GOVERNANCE -> GovernanceScreen(viewModel = viewModel)
+                AppTab.THREAT_INTEL -> ThreatIntelligenceScreen(viewModel = viewModel)
+                AppTab.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
             }
         }
     }
