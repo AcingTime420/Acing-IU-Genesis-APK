@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.FirmwareScanEntity
 import com.example.ui.AcingViewModel
 import com.example.ui.components.BuildPropFirmwareSecurityComponent
+import com.example.ui.components.OdinFirmwareVerifierView
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.SeverityBadge
 import com.example.ui.theme.AegisBorder
@@ -72,6 +73,9 @@ fun FirmwareScreen(
     val vbmetaResult by viewModel.vbmetaResult.collectAsState()
     val strongBoxCryptoResult by viewModel.strongBoxCryptoResult.collectAsState()
     val domainTransitions by viewModel.domainTransitions.collectAsState()
+
+    val odinFirmwareResult by viewModel.odinFirmwareResult.collectAsState()
+    val isVerifyingOdin by viewModel.isVerifyingOdin.collectAsState()
 
     LazyColumn(
         modifier = modifier
@@ -152,6 +156,16 @@ fun FirmwareScreen(
                 onToggleVbmetaSpoof = { viewModel.toggleVbmetaSpoof(it) },
                 onRunStrongBoxCrypto = { alias, text -> viewModel.runStrongBoxTeeCrypto(alias, text) },
                 onUnblockDomainTransition = { source, target -> viewModel.unblockDomainTransition(source, target) }
+            )
+        }
+
+        // Module 2: Odin Firmware Verification
+        item {
+            OdinFirmwareVerifierView(
+                odinResult = odinFirmwareResult,
+                isVerifying = isVerifyingOdin,
+                onVerifyOdin = { viewModel.verifyOdinFirmwareArchive(it) },
+                onDismiss = { viewModel.clearOdinFirmwareResult() }
             )
         }
 

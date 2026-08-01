@@ -22,7 +22,15 @@ import com.example.firmware.DomainTransitionPermission
 import com.example.firmware.StrongBoxTeeOperationResult
 import com.example.firmware.VbmetaValidationAndSpoofResult
 import com.example.logging.CentralizedLoggingService
+import com.example.firmware.OdinFirmwareVerifier
+import com.example.firmware.OdinTarMd5VerificationResult
+import com.example.security.CustomSecurityAuditEngine
 import com.example.security.DeviceTelemetryInput
+import com.example.security.GeneratedPolicyResult
+import com.example.security.NetworkScanReport
+import com.example.security.NetworkVulnerabilityScanner
+import com.example.security.SecurityAuditReport
+import com.example.security.SelinuxPolicyGenerator
 import com.example.security.TelemetryValidator
 import com.example.trust.DeviceTrustReport
 import com.example.trust.DeviceTrustService
@@ -79,6 +87,35 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
     private val aiService = AegisAiService()
     private val agentGovernanceService = AgentGovernanceService()
     private val firmwareSecurityEngine = BuildPropAndFirmwareSecurityEngine()
+    private val selinuxPolicyGenerator = SelinuxPolicyGenerator()
+    private val customAuditEngine = CustomSecurityAuditEngine()
+    private val networkScanner = NetworkVulnerabilityScanner()
+    private val odinVerifier = OdinFirmwareVerifier()
+
+    // Module 3: Knox & SELinux Policy Generator State
+    private val _selinuxPolicyResult = MutableStateFlow<GeneratedPolicyResult?>(null)
+    val selinuxPolicyResult: StateFlow<GeneratedPolicyResult?> = _selinuxPolicyResult.asStateFlow()
+
+    // Module 4: Custom Security Audit Routine State
+    private val _customAuditReport = MutableStateFlow<SecurityAuditReport?>(null)
+    val customAuditReport: StateFlow<SecurityAuditReport?> = _customAuditReport.asStateFlow()
+
+    private val _isCustomAuditRunning = MutableStateFlow(false)
+    val isCustomAuditRunning: StateFlow<Boolean> = _isCustomAuditRunning.asStateFlow()
+
+    // Module 1: Custom Network Vulnerability Scanner State
+    private val _networkScanReport = MutableStateFlow<NetworkScanReport?>(null)
+    val networkScanReport: StateFlow<NetworkScanReport?> = _networkScanReport.asStateFlow()
+
+    private val _isNetworkScanning = MutableStateFlow(false)
+    val isNetworkScanning: StateFlow<Boolean> = _isNetworkScanning.asStateFlow()
+
+    // Module 2: Odin Firmware Verification State
+    private val _odinFirmwareResult = MutableStateFlow<OdinTarMd5VerificationResult?>(null)
+    val odinFirmwareResult: StateFlow<OdinTarMd5VerificationResult?> = _odinFirmwareResult.asStateFlow()
+
+    private val _isVerifyingOdin = MutableStateFlow(false)
+    val isVerifyingOdin: StateFlow<Boolean> = _isVerifyingOdin.asStateFlow()
 
     val auditLogs: StateFlow<List<AuditLogEntity>>
     val deviceSnapshots: StateFlow<List<DeviceSnapshotEntity>>
@@ -908,5 +945,106 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
                 role = _currentRole.value.label
             )
         }
+    }
+
+    // =========================================================================
+    // Module 3: Knox & SELinux Policy Generator
+    // =========================================================================
+    fun generateSelinuxPolicyFromDenial(rawLogcatInput: String) {
+        viewModelScope.launch {
+            val result = selinuxPolicyGenerator.generatePolicyFromDenial(rawLogcatInput)
+            _selinuxPolicyResult.value = result
+            loggingService.logOperation(
+                category = "SELinux Policy Generator",
+                title = "Generated .te Policy Rules from Logcat",
+                details = result.summary,
+                severity = if (result.isNeverallowViolation) "WARNING" else "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearSelinuxPolicyResult() {
+        _selinuxPolicyResult.value = null
+    }
+
+    // =========================================================================
+    // Module 4: Custom Security Audit Routine Engine
+    // =========================================================================
+    fun runCustomSecurityAuditRoutine(customTaskName: String = "Full Zero-Trust System Integrity Scan") {
+        _isCustomAuditRunning.value = true
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(500)
+            val report = customAuditEngine.runZeroTrustAuditSuite(
+                customTaskName = customTaskName,
+                selinuxEnforced = _selinuxEnforced.value,
+                knoxFuseIntact = true,
+                bootloaderLocked = _avbVerified.value
+            )
+            _customAuditReport.value = report
+            _isCustomAuditRunning.value = false
+
+            loggingService.logOperation(
+                category = "Security Audit Engine",
+                title = "Custom Audit Routine Executed: $customTaskName",
+                details = "Overall Score: ${report.overallScore}/100 | Passed: ${report.passedChecks}/${report.totalChecks} | Zero Trust: ${report.zeroTrustCompliant}",
+                severity = if (report.zeroTrustCompliant) "SECURE" else "WARNING",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearCustomAuditReport() {
+        _customAuditReport.value = null
+    }
+
+    // =========================================================================
+    // Module 1: Custom Network Vulnerability Scanner
+    // =========================================================================
+    fun runNetworkVulnerabilityScan(targetHost: String = "127.0.0.1 (Local Sockets)") {
+        _isNetworkScanning.value = true
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(600)
+            val report = networkScanner.scanNetworkEndpoints(targetHost = targetHost)
+            _networkScanReport.value = report
+            _isNetworkScanning.value = false
+
+            loggingService.logOperation(
+                category = "Network Scanner",
+                title = "Network Socket & TLS Vulnerability Scan Completed",
+                details = "Target: $targetHost | Open Ports: ${report.openPortsCount} | High-Risk: ${report.highRiskPortsCount} | Grade: ${report.overallSecurityGrade}",
+                severity = if (report.highRiskPortsCount > 0) "WARNING" else "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearNetworkScanReport() {
+        _networkScanReport.value = null
+    }
+
+    // =========================================================================
+    // Module 2: Odin-Flashed Firmware Verification Module
+    // =========================================================================
+    fun verifyOdinFirmwareArchive(archiveName: String = "AP_SM-S938U_S25_ULTRA_OEM_BUILD.tar.md5") {
+        _isVerifyingOdin.value = true
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(700)
+            val result = odinVerifier.parsePitAndVerifyOdinFirmware(sampleTarMd5Name = archiveName)
+            _odinFirmwareResult.value = result
+            _isVerifyingOdin.value = false
+
+            loggingService.logOperation(
+                category = "Odin Firmware Verifier",
+                title = "PIT Partition Table & TAR.MD5 Integrity Verified",
+                details = result.verificationSummary,
+                severity = if (result.tamperedPartitionsDetected.isNotEmpty()) "CRITICAL" else "SECURE",
+                role = _currentRole.value.label
+            )
+        }
+    }
+
+    fun clearOdinFirmwareResult() {
+        _odinFirmwareResult.value = null
     }
 }

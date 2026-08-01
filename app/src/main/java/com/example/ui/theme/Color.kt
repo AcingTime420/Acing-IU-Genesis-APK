@@ -14,6 +14,7 @@ val AegisSecondaryTeal = Color(0xFFDDE1FF)
 
 val AegisSecureGreen = Color(0xFF108043)
 val AegisWarningGold = Color(0xFFB45309)
+val AegisWarningYellow = Color(0xFFB45309)
 val AegisDangerRed = Color(0xFFB3261E)
 val AegisInfoBlue = Color(0xFF3F51B5)
 

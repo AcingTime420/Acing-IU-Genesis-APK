@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AcingViewModel
+import com.example.ui.components.NetworkVulnerabilityScannerView
 import com.example.ui.theme.*
 
 @Composable
@@ -27,6 +28,9 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
     var bootloaderUnlocked by remember { mutableStateOf(false) }
     var adbEnabled by remember { mutableStateOf(false) }
     var deviceEncrypted by remember { mutableStateOf(true) }
+
+    val networkScanReport by viewModel.networkScanReport.collectAsState()
+    val isNetworkScanning by viewModel.isNetworkScanning.collectAsState()
     
     LaunchedEffect(Unit) {
         // System API checks
@@ -74,6 +78,14 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
             }
         }
         
+        // Module 1: Custom Network Vulnerability Scanner
+        NetworkVulnerabilityScannerView(
+            scanReport = networkScanReport,
+            isScanning = isNetworkScanning,
+            onRunScan = { viewModel.runNetworkVulnerabilityScan(it) },
+            onDismiss = { viewModel.clearNetworkScanReport() }
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
         
         val biometricLockout by viewModel.biometricLockoutProtection.collectAsState()

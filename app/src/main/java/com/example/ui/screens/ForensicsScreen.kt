@@ -51,7 +51,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.AuditLogEntity
 import com.example.ui.AcingViewModel
 import com.example.ui.components.AuditLogRowItem
+import com.example.ui.components.CustomSecurityAuditView
 import com.example.ui.components.SectionHeader
+import com.example.ui.components.SelinuxPolicyGeneratorView
 import com.example.ui.components.SeverityBadge
 import com.example.ui.theme.AegisBorder
 import com.example.ui.theme.AegisDarkBg
@@ -69,6 +71,10 @@ fun ForensicsScreen(
     val auditLogs by viewModel.auditLogs.collectAsState()
     val isAnalyzingLog by viewModel.isAnalyzingLog.collectAsState()
     val logAnalysisResult by viewModel.logAnalysisResult.collectAsState()
+
+    val selinuxPolicyResult by viewModel.selinuxPolicyResult.collectAsState()
+    val customAuditReport by viewModel.customAuditReport.collectAsState()
+    val isCustomAuditRunning by viewModel.isCustomAuditRunning.collectAsState()
 
     var customLogInput by remember { mutableStateOf("") }
 
@@ -241,6 +247,25 @@ fun ForensicsScreen(
                     }
                 }
             }
+        }
+
+        // Module 3: Knox & SELinux Policy Generator
+        item {
+            SelinuxPolicyGeneratorView(
+                policyResult = selinuxPolicyResult,
+                onGeneratePolicy = { viewModel.generateSelinuxPolicyFromDenial(it) },
+                onDismiss = { viewModel.clearSelinuxPolicyResult() }
+            )
+        }
+
+        // Module 4: Custom Security Audit Routine
+        item {
+            CustomSecurityAuditView(
+                auditReport = customAuditReport,
+                isRunning = isCustomAuditRunning,
+                onRunAudit = { viewModel.runCustomSecurityAuditRoutine(it) },
+                onDismiss = { viewModel.clearCustomAuditReport() }
+            )
         }
 
         item {
