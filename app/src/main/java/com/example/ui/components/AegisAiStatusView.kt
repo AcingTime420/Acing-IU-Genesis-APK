@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -69,7 +69,7 @@ fun AegisAiStatusView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,7 +93,7 @@ fun AegisAiStatusView(
                             )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = statusTitle,
                             fontSize = 11.sp,
@@ -109,7 +109,9 @@ fun AegisAiStatusView(
                             text = serviceErrorMessage ?: validationResult.userMessage,
                             fontSize = 10.sp,
                             color = if (isErrorState || isMissingConfig) Color(0xFFE0E0E0) else AegisTextSecondary,
-                            maxLines = 2
+                            maxLines = 1,
+                            lineHeight = 12.sp,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -127,7 +129,7 @@ fun AegisAiStatusView(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.HelpOutline,
+                                    imageVector = Icons.Default.Info,
                                     contentDescription = "Troubleshoot",
                                     tint = Color(0xFFFFD54F),
                                     modifier = Modifier.size(12.dp)

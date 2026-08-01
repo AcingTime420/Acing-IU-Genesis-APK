@@ -84,6 +84,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
     private val viewModel: AcingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CrashHandler.install(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val workRequest = PeriodicWorkRequestBuilder<SecuritySnapshotWorker>(24, TimeUnit.HOURS).build()

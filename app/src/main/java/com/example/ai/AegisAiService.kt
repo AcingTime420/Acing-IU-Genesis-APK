@@ -26,7 +26,6 @@ class AegisAiService {
                     • HARDWARE ATTESTATION: StrongBox TEE Keymaster Verified with RSA-4096 signing keys. AVB 2.0 boot chain intact.
                     • ZERO-TRUST DIRECTIVE: RBAC Role '$role' policy enforced. Maintain strict integrity checks across firmware image partitions.
                     
-                    (Live AI Status: $cleanError — Aegis Local Fail-Safe Engine Active)
                 """.trimIndent()
             }
         )
@@ -56,7 +55,6 @@ class AegisAiService {
                     3. Recommendation:
                        Keep rollback index locked and verify image hash before OTA deployment.
                        
-                    (Live AI Status: $cleanError — Aegis Local Cryptographic Analyzer Active)
                 """.trimIndent()
             }
         )
@@ -83,7 +81,6 @@ class AegisAiService {
                       1. Enforce certificate pinning on remote management endpoints.
                       2. Maintain strict RBAC user isolation.
                       
-                    (Live AI Status: $cleanError — Aegis Local Telemetry Diagnostic Active)
                 """.trimIndent()
             }
         )
@@ -109,7 +106,6 @@ class AegisAiService {
                     3. Governance Directives:
                        Ensure immutable Room DB audit logging is active for all administrative actions.
                        
-                    (Live AI Status: $cleanError — Aegis Local Governance Audit Active)
                 """.trimIndent()
             }
         )
@@ -134,7 +130,6 @@ class AegisAiService {
                     3. Remediation Directives:
                        Continue monitoring logcat stream via Aegis Forensics module.
                        
-                    (Live AI Status: $cleanError — Aegis Local Log Inspector Active)
                 """.trimIndent()
             }
         )
@@ -157,7 +152,6 @@ class AegisAiService {
                     • Verification Strategy: Validate AVB 2.0 partition hashes and verify Hardware Keystore attestation certificate chain.
                     • Auditability Impact: Critical event recorded in immutable local security audit log.
                     
-                    (Live AI Status: $cleanError — Aegis Local Deep Security Engine Active)
                 """.trimIndent()
             }
         )

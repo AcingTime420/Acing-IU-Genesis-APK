@@ -86,6 +86,34 @@ fun AuthenticationErrorView(
         
         Spacer(modifier = Modifier.height(24.dp))
         
+        val context = androidx.compose.ui.platform.LocalContext.current
+
+        Button(
+            onClick = {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_BIOMETRIC_ENROLL).apply {
+                            putExtra(android.provider.Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED, 
+                                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                        }
+                        context.startActivity(intent)
+                    } else {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+                        context.startActivity(intent)
+                    }
+                } catch (e: Throwable) {
+                    android.widget.Toast.makeText(context, "Cannot open enrollment settings.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = AegisDarkBg),
+            modifier = Modifier.fillMaxWidth(),
+            border = androidx.compose.foundation.BorderStroke(1.dp, AegisPrimaryCyan)
+        ) {
+            Text("ENROLL BIOMETRICS", color = AegisPrimaryCyan, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Button(
             onClick = onTryAgain,
             colors = ButtonDefaults.buttonColors(containerColor = AegisPrimaryCyan),

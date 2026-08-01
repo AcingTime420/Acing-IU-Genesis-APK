@@ -5,6 +5,8 @@ import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
@@ -45,7 +47,8 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
@@ -70,6 +73,18 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
                 SecurityItemRow(title = "Data Encryption", isSecure = deviceEncrypted, secureText = "Encrypted", insecureText = "Unencrypted")
             }
         }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        val biometricLockout by viewModel.biometricLockoutProtection.collectAsState()
+        val highSensitivity by viewModel.highSensitivityMode.collectAsState()
+        
+        com.example.ui.components.SecuritySettingsView(
+            biometricLockoutProtection = biometricLockout,
+            onBiometricLockoutChange = { viewModel.toggleBiometricLockoutProtection(it) },
+            highSensitivityMode = highSensitivity,
+            onHighSensitivityChange = { viewModel.toggleHighSensitivityMode(it) }
+        )
     }
 }
 
