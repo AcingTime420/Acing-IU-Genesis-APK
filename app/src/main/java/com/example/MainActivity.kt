@@ -64,6 +64,7 @@ import com.example.ui.screens.FirmwareScreen
 import com.example.ui.screens.ForensicsScreen
 import com.example.ui.screens.GovernanceScreen
 import com.example.ui.screens.DeviceSecurityScreen
+import com.example.ui.screens.SecurityStatusScreen
 import com.example.ui.screens.ThreatIntelligenceScreen
 import com.example.ui.theme.AegisBadgeIndigoBg
 import com.example.ui.theme.AegisBadgeIndigoText
@@ -181,6 +182,7 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
             ) {
                 val navItems = listOf(
                     AppTab.DASHBOARD to ("Status" to Icons.Default.Dashboard),
+                    AppTab.SECURITY_STATUS to ("Matrix" to Icons.Default.Shield),
                     AppTab.FIRMWARE to ("Firmware" to Icons.Default.FolderZip),
                     AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
                     AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
@@ -228,6 +230,7 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
         ) {
             when (selectedTab) {
                 AppTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
+                AppTab.SECURITY_STATUS -> SecurityStatusScreen(viewModel = viewModel)
                 AppTab.FIRMWARE -> FirmwareScreen(viewModel = viewModel)
                 AppTab.DEVICES -> DevicesScreen(viewModel = viewModel)
                 AppTab.FORENSICS -> ForensicsScreen(viewModel = viewModel)

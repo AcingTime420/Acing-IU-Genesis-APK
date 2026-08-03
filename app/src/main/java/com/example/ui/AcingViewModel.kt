@@ -49,7 +49,8 @@ enum class AppTab {
     AEGIS_AI,
     GOVERNANCE,
     THREAT_INTEL,
-    DEVICE_SECURITY
+    DEVICE_SECURITY,
+    SECURITY_STATUS
 }
 
 enum class SecurityRole(val label: String, val level: String) {

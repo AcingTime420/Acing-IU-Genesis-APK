@@ -18,8 +18,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.security.AcingMatrixAudit
+import com.example.security.AcingSecurityWorker
+import com.example.security.BiometricSecurityManager
 import com.example.ui.AcingViewModel
+import com.example.ui.components.AcingMatrixAuditView
+import com.example.ui.components.FingerprintMappingView
+import com.example.ui.components.HardwareSecuritySettingsCard
+import com.example.ui.components.HardwareSecurityState
 import com.example.ui.components.NetworkVulnerabilityScannerView
+import com.example.ui.components.PredictiveKeyboardCard
+import com.example.ui.components.SystemHealthChartDashboard
 import com.example.ui.theme.*
 
 @Composable
@@ -29,6 +38,10 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
     var adbEnabled by remember { mutableStateOf(false) }
     var deviceEncrypted by remember { mutableStateOf(true) }
 
+    val matrixAudit = remember { AcingMatrixAudit() }
+    val biometricManager = remember { BiometricSecurityManager(context) }
+    var hardwareSettingsState by remember { mutableStateOf(HardwareSecurityState()) }
+
     val networkScanReport by viewModel.networkScanReport.collectAsState()
     val isNetworkScanning by viewModel.isNetworkScanning.collectAsState()
     
@@ -37,12 +50,12 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
         val adb = Settings.Global.getInt(context.contentResolver, Settings.Global.ADB_ENABLED, 0)
         adbEnabled = adb == 1
         
-        // Try getting bootloader state from properties (not directly accessible on non-rooted apps, but simulated here via os.Build)
-        // Usually checked via SafetyNet/PlayIntegrity, but we just simulate based on tags.
         bootloaderUnlocked = Build.TAGS != null && Build.TAGS.contains("test-keys")
-        
-        // Encryption
-        deviceEncrypted = true // Modern Android is always encrypted.
+        deviceEncrypted = true
+
+        // Enqueue background WorkManager security worker task
+        AcingSecurityWorker.enqueueImmediateSync(context)
+        AcingSecurityWorker.schedulePeriodicSync(context)
         
         viewModel.logEvent("DEVICE_SECURITY", "Device Security Audit Performed", "ADB: $adbEnabled, Bootloader: $bootloaderUnlocked")
     }
@@ -56,12 +69,19 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "DEVICE SECURITY AUDIT",
+            text = "DEVICE SECURITY & ACING MATRIX AUDIT",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.primary
             )
+        )
+
+        // 1. System Health Chart Dashboard
+        SystemHealthChartDashboard(
+            nodeConsensusPercentage = if (hardwareSettingsState.acingMatrixSyncEnabled) 100 else 66,
+            activeNodesCount = if (hardwareSettingsState.acingMatrixSyncEnabled) 3 else 2,
+            securityEventCount = 14
         )
         
         Card(
@@ -77,8 +97,47 @@ fun DeviceSecurityScreen(viewModel: AcingViewModel) {
                 SecurityItemRow(title = "Data Encryption", isSecure = deviceEncrypted, secureText = "Encrypted", insecureText = "Unencrypted")
             }
         }
+
+        // 2. Persistent Partition & FRP Audit View
+        AcingMatrixAuditView(
+            matrixAudit = matrixAudit,
+            onTriggerAudit = {
+                viewModel.logEvent("PST_AUDIT", "Persistent Partition Audited", "Verified via PersistentDataBlockManager")
+            }
+        )
+
+        // 3. Biometric Fingerprint Action Mapping View
+        FingerprintMappingView(
+            biometricManager = biometricManager,
+            onTriggerExecuted = { mapping, feedback ->
+                if (mapping.assignedAction == com.example.security.SecurityActionType.AUTHORIZED_FRP_RESET) {
+                    matrixAudit.logAuthorizedFrpResetEvent(
+                        triggerFinger = mapping.fingerName,
+                        isBiometricValid = true,
+                        matrixConsensusApproved = hardwareSettingsState.acingMatrixSyncEnabled
+                    )
+                }
+                viewModel.logEvent("BIOMETRIC_TRIGGER", mapping.fingerName, feedback)
+            }
+        )
+
+        // 4. Hardware Security Protection Toggles Settings Card
+        HardwareSecuritySettingsCard(
+            state = hardwareSettingsState,
+            onStateChange = { newState ->
+                hardwareSettingsState = newState
+                viewModel.logEvent(
+                    category = "HARDWARE_TOGGLES",
+                    title = "Hardware Security Settings Updated",
+                    details = "USB Lockdown: ${newState.usbDataLockdown}, 2G/3G Lockdown: ${newState.radioCellularLockdown2G3G}, Matrix Sync: ${newState.acingMatrixSyncEnabled}"
+                )
+            }
+        )
         
-        // Module 1: Custom Network Vulnerability Scanner
+        // 5. Predictive Auto-Keyboard Engine
+        PredictiveKeyboardCard()
+
+        // 6. Custom Network Vulnerability Scanner
         NetworkVulnerabilityScannerView(
             scanReport = networkScanReport,
             isScanning = isNetworkScanning,

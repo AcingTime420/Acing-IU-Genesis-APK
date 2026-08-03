@@ -82,6 +82,10 @@ fun GovernanceScreen(
             )
         }
 
+        item {
+            com.example.ui.components.KnoxVsGenesisSecurityMatrixComponent()
+        }
+
         if (governanceAuditResult != null) {
             item {
                 Card(

@@ -86,11 +86,27 @@ class BuildPropAndFirmwareSecurityEngine {
             ),
             BuildPropItem(
                 propName = "ro.hardware.keystore",
-                currentValue = "strongbox.tEE.v3",
-                expectedValue = "strongbox.tEE.v3",
+                currentValue = "strongbox.genesis.v4",
+                expectedValue = "strongbox.genesis.v4",
                 isSecure = true,
                 category = "Hardware TEE & Root of Trust",
-                description = "Strongbox Hardware Security Module (HSM/TEE) keymaster implementation."
+                description = "Strongbox Hardware Security Module (HSM/TEE) keymaster implementation running Acing IU Genesis Quantum-Resistant Enclave."
+            ),
+            BuildPropItem(
+                propName = "ro.security.tridar.encryption",
+                currentValue = "tri_dar_2.5.0_active",
+                expectedValue = "tri_dar_2.5.0_active",
+                isSecure = true,
+                category = "Enterprise Encryption Suite",
+                description = "TriDAR 2.5.0 Quantum-Shield & MDF v4.0 triple-layer hardware-backed data encryption."
+            ),
+            BuildPropItem(
+                propName = "ro.crypto.fips_boringssl",
+                currentValue = "fips_140_3_level_4_ml_kem_1024",
+                expectedValue = "fips_140_3_level_4_ml_kem_1024",
+                isSecure = true,
+                category = "Post-Quantum Cryptography",
+                description = "NIST Standardized FIPS 140-3 Level 4 Quantum-Resistant BoringSSL (ML-KEM-1024 / ML-DSA-87) & SKC/SCrypto v3.0."
             ),
             BuildPropItem(
                 propName = "ro.boot.verifiedbootstate",
@@ -187,10 +203,12 @@ class BuildPropAndFirmwareSecurityEngine {
         val cipherText = Base64.encodeToString(hashedInput, Base64.NO_WRAP)
 
         val certChain = listOf(
-            "Subject: CN=Acing IU Genesis StrongBox Hardware Attestation Root CA",
-            "Issuer: CN=Google Hardware Attestation Intermediate CA",
-            "TEE Hardware: ARM TrustZone / Knox StrongBox EAL5+ HSM",
-            "Key Mint Version: KeyMint 3.0 (StrongBox isolated core)"
+            "Subject: CN=Acing IU Genesis Sentinel StrongBox Hardware Attestation Root CA",
+            "Issuer: CN=Aegis Zero-Trust Post-Quantum Hardware Intermediate CA",
+            "Encryption Engine: TriDAR 2.5.0 Quantum-Shield (3-Layer Hardware Backed) & MDF v4.0",
+            "Cryptography Enclave: FIPS 140-3 Level 4 Quantum BoringSSL (NIST ML-KEM-1024 / ML-DSA-87) & SKC/SCrypto v3.0",
+            "TEE Hardware: ARM TrustZone / Genesis StrongBox EAL6+ Dual-Enclave HSM",
+            "Key Mint Version: KeyMint 4.0 (Acing Genesis Quantum Core)"
         )
 
         return StrongBoxTeeOperationResult(

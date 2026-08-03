@@ -27,7 +27,7 @@ data class OdinTarMd5VerificationResult(
 class OdinFirmwareVerifier {
 
     fun parsePitAndVerifyOdinFirmware(
-        sampleTarMd5Name: String = "AP_SM-S938U_S25_ULTRA_OEM_BUILD.tar.md5"
+        sampleTarMd5Name: String = "AP_S938USQSBCZF5_S938UOYNBCZF5_SM-S938U_S25_ULTRA.tar.md5"
     ): OdinTarMd5VerificationResult {
         val samplePitEntries = listOf(
             PitPartitionEntry(
@@ -35,7 +35,7 @@ class OdinFirmwareVerifier {
                 flashFilename = "boot.img",
                 blockOffsetHex = "0x00080000",
                 sizeInMB = 64,
-                filesystemType = "RAW (Linux Kernel 6.6)",
+                filesystemType = "RAW (Linux Kernel 6.6.98-android15-8)",
                 isProtectedByAvb = true,
                 calculatedSha256Digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 expectedSha256Digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -46,7 +46,7 @@ class OdinFirmwareVerifier {
                 flashFilename = "recovery.img",
                 blockOffsetHex = "0x000C0000",
                 sizeInMB = 1024,
-                filesystemType = "EROFS",
+                filesystemType = "EROFS (Android 16 One UI 8.5 Recovery)",
                 isProtectedByAvb = true,
                 calculatedSha256Digest = "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
                 expectedSha256Digest = "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
@@ -57,7 +57,7 @@ class OdinFirmwareVerifier {
                 flashFilename = "super.img",
                 blockOffsetHex = "0x00200000",
                 sizeInMB = 8192,
-                filesystemType = "EROFS (Dynamic Partitions)",
+                filesystemType = "EROFS (Build BP4A.251205.006.S938USQSBCZF5)",
                 isProtectedByAvb = true,
                 calculatedSha256Digest = "fe9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedc",
                 expectedSha256Digest = "fe9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedc",
@@ -68,7 +68,7 @@ class OdinFirmwareVerifier {
                 flashFilename = "vbmeta.img",
                 blockOffsetHex = "0x00004000",
                 sizeInMB = 2,
-                filesystemType = "RAW (AvbPubKey)",
+                filesystemType = "RAW (AvbPubKey - Samsung Knox 3.13 Root)",
                 isProtectedByAvb = true,
                 calculatedSha256Digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                 expectedSha256Digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -79,7 +79,7 @@ class OdinFirmwareVerifier {
                 flashFilename = "vendor_boot.img",
                 blockOffsetHex = "0x00100000",
                 sizeInMB = 128,
-                filesystemType = "RAW (Ramdisk Modules)",
+                filesystemType = "RAW (Ramdisk Modules - SMR Jul-2026)",
                 isProtectedByAvb = true,
                 calculatedSha256Digest = "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff",
                 expectedSha256Digest = "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff",

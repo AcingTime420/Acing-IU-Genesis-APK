@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Acing IU: Genesis</string>
+    <string name="accessibility_service_description">Acing Matrix Predictive Auto-Keyboard Accessibility Service for on-device next-word typing.</string>
 </resources>
