@@ -118,16 +118,16 @@ class BuildPropAndFirmwareSecurityEngine {
             ),
             BuildPropItem(
                 propName = "ro.boot.bootkit_injection_allowed",
-                currentValue = "0 (denied)",
-                expectedValue = "0 (denied)",
+                currentValue = "0 (disabled)",
+                expectedValue = "0 (disabled)",
                 isSecure = true,
                 category = "Bootkit & Ramdisk Protection",
                 description = "Kernel/Bootloader command line flag enforcing zero bootkit injection vectors."
             ),
             BuildPropItem(
                 propName = "ro.boot.ramdisk_mod_allowed",
-                currentValue = "0 (blocked)",
-                expectedValue = "0 (blocked)",
+                currentValue = "0 (protected)",
+                expectedValue = "0 (protected)",
                 isSecure = true,
                 category = "Bootkit & Ramdisk Protection",
                 description = "Init.rc and ramdisk boot image write protection policy."

@@ -182,6 +182,12 @@ fun DashboardScreen(
         }
 
         item {
+            com.example.ui.components.MatrixHealthDashboard(
+                onTriggerAcingAudit = { viewModel.runFullSecurityAudit() }
+            )
+        }
+
+        item {
             CentralNavigationHub(viewModel)
         }
         item {
