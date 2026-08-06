@@ -99,4 +99,26 @@ class OdinFirmwareVerifier {
             verificationSummary = "Odin archive '$sampleTarMd5Name' PIT entries parsed successfully. All 5 partition SHA-256 digests match OEM release signatures."
         )
     }
+
+    /**
+     * Optimized chunked SHA-256 byte digest calculation for multi-gigabyte Odin partitions (e.g. 8GB super.img).
+     * Uses a 128KB buffer and StringBuilder allocation to avoid heap churn and GC pressure.
+     */
+    fun calculateSha256Chunked(file: java.io.File, bufferSizeBytes: Int = 128 * 1024): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered(bufferSizeBytes).use { inputStream ->
+            val buffer = ByteArray(bufferSizeBytes)
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                digest.update(buffer, 0, bytesRead)
+            }
+        }
+        val hashBytes = digest.digest()
+        val sb = StringBuilder(hashBytes.size * 2)
+        for (b in hashBytes) {
+            sb.append(String.format("%02x", b))
+        }
+        return sb.toString()
+    }
 }
+

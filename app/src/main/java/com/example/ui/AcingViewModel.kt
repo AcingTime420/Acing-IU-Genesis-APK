@@ -24,6 +24,12 @@ import com.example.firmware.VbmetaValidationAndSpoofResult
 import com.example.logging.CentralizedLoggingService
 import com.example.firmware.OdinFirmwareVerifier
 import com.example.firmware.OdinTarMd5VerificationResult
+import com.example.billing.LicenseTier
+import com.example.billing.ShopifyLicenseState
+import com.example.billing.ShopifyLicenseValidator
+import com.example.billing.ShopifyValidationResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.update
 import com.example.security.CustomSecurityAuditEngine
 import com.example.security.DeviceTelemetryInput
 import com.example.security.GeneratedPolicyResult
@@ -92,6 +98,14 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
     private val customAuditEngine = CustomSecurityAuditEngine()
     private val networkScanner = NetworkVulnerabilityScanner()
     private val odinVerifier = OdinFirmwareVerifier()
+    private val shopifyLicenseValidator = ShopifyLicenseValidator()
+
+    // Module 5: Shopify License Validation State Engine
+    private val _shopifyLicenseState = MutableStateFlow(ShopifyLicenseState())
+    val shopifyLicenseState: StateFlow<ShopifyLicenseState> = _shopifyLicenseState.asStateFlow()
+
+    private val _isValidatingShopifyLicense = MutableStateFlow(false)
+    val isValidatingShopifyLicense: StateFlow<Boolean> = _isValidatingShopifyLicense.asStateFlow()
 
     // Module 3: Knox & SELinux Policy Generator State
     private val _selinuxPolicyResult = MutableStateFlow<GeneratedPolicyResult?>(null)
@@ -1047,5 +1061,42 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearOdinFirmwareResult() {
         _odinFirmwareResult.value = null
+    }
+
+    // =========================================================================
+    // Module 5: Shopify License Validation Subsystem
+    // =========================================================================
+    fun validateShopifyLicenseToken(purchaseToken: String = "GENESIS-PRO-S25U-938U-ENTERPRISE") {
+        _isValidatingShopifyLicense.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            val result: ShopifyValidationResult = shopifyLicenseValidator.validateLicenseToken(purchaseToken)
+
+            _shopifyLicenseState.update { currentState ->
+                currentState.copy(
+                    isLicensed = result.isValid,
+                    customerToken = purchaseToken,
+                    customerEmail = result.customerEmail ?: "unverified@acing-iu.internal",
+                    licenseTier = result.licenseTier,
+                    activeSubscriptionId = if (result.isValid) "SUB-${purchaseToken.take(8).uppercase()}" else null,
+                    lastValidatedTimestamp = System.currentTimeMillis(),
+                    validationMessage = result.message,
+                    lastResponseCode = result.httpStatusCode
+                )
+            }
+            _isValidatingShopifyLicense.value = false
+
+            loggingService.logOperation(
+                category = "Shopify Licensing",
+                title = if (result.isValid) "Shopify License Validated (${result.licenseTier.displayName})" else "Shopify License Verification Failed",
+                details = "Token: ${purchaseToken.take(12)}... | Email: ${result.customerEmail ?: "N/A"} | Status: ${result.subscriptionStatus} | Summary: ${result.rawPayloadSummary}",
+                severity = if (result.isValid) "SECURE" else "WARNING",
+                role = _currentRole.value.label,
+                outcome = if (result.isValid) "LICENSE_ACTIVE" else "LICENSE_REJECTED"
+            )
+        }
+    }
+
+    fun resetShopifyLicenseState() {
+        _shopifyLicenseState.value = ShopifyLicenseState()
     }
 }

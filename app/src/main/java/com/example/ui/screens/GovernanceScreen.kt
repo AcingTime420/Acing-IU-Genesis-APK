@@ -83,6 +83,10 @@ fun GovernanceScreen(
         }
 
         item {
+            com.example.ui.components.ShopifyLicenseCard(viewModel = viewModel)
+        }
+
+        item {
             com.example.ui.components.KnoxVsGenesisSecurityMatrixComponent()
         }
 
