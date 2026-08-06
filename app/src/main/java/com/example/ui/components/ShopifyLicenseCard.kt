@@ -97,8 +97,7 @@ fun ShopifyLicenseCard(
                 }
 
                 SeverityBadge(
-                    severity = if (licenseState.isLicensed) "SECURE" else "WARNING",
-                    label = if (licenseState.isLicensed) "LICENSED" else "UNVERIFIED"
+                    severity = if (licenseState.isLicensed) "SECURE" else "WARNING"
                 )
             }
 
