@@ -286,7 +286,7 @@ fun SecurityStatusScreen(
             indicator = { tabPositions ->
                 val index = selectedLayerFilter?.layerNumber ?: 0
                 if (index < tabPositions.size) {
-                    TabRowDefaults.Indicator(
+                    TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[index]),
                         color = AegisPrimaryCyan,
                         height = 3.dp
@@ -302,7 +302,7 @@ fun SecurityStatusScreen(
                 onClick = { selectedLayerFilter = null },
                 text = { Text("ALL LAYERS (${capabilitiesList.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
             )
-            GenesisLayer.values().forEach { layer ->
+            GenesisLayer.entries.forEach { layer ->
                 val count = capabilitiesList.count { it.layer == layer }
                 Tab(
                     selected = selectedLayerFilter == layer,

@@ -28,21 +28,31 @@ android {
   }
 
   signingConfigs {
-    val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-    val storePassword = System.getenv("STORE_PASSWORD")
-    val keyPassword = System.getenv("KEY_PASSWORD")
-    if (file(keystorePath).exists() && !storePassword.isNullOrEmpty()) {
+    val keystorePath = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() } ?: "${rootDir}/my-upload-key.jks"
+    val storePassword = System.getenv("STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+    val keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+    val keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "upload"
+    val keystoreFile = file(keystorePath)
+
+    if (keystoreFile.exists() && storePassword != null) {
       create("release") {
-        storeFile = file(keystorePath)
+        storeFile = keystoreFile
         this.storePassword = storePassword
-        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
-        this.keyPassword = keyPassword
+        this.keyAlias = keyAlias
+        this.keyPassword = keyPassword ?: storePassword
       }
+    } else {
+      val missingReasons = buildList {
+        if (!keystoreFile.exists()) add("Keystore file not found at '$keystorePath'")
+        if (storePassword == null) add("STORE_PASSWORD environment variable is not set or empty")
+      }
+      logger.warn("⚠️ [Release Signing] Release signing configuration was skipped: ${missingReasons.joinToString("; ")}. An unsigned APK will be produced for release builds.")
     }
+
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
       this.storePassword = "android"
-      keyAlias = "androiddebugkey"
+      this.keyAlias = "androiddebugkey"
       this.keyPassword = "android"
     }
   }
@@ -50,7 +60,8 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       if (signingConfigs.findByName("release") != null) {
         signingConfig = signingConfigs.getByName("release")
@@ -71,8 +82,6 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
-// Configure the Secrets Gradle Plugin to use .env and .env.example files
-// to match the convention used in Web projects.
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
@@ -82,8 +91,6 @@ secrets {
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
-// Some unused dependencies are commented out below instead of being removed.
-// This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
@@ -108,25 +115,16 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
-  // Uncomment to use Firestore:
-  // implementation(libs.firebase.firestore)
-
-  // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
-  // Sign-In via Credential Manager:
-  // implementation(libs.firebase.auth)
-  // implementation(libs.androidx.credentials)
-  // implementation(libs.androidx.credentials.play.services)
-  // implementation(libs.googleid)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
-  // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   implementation(libs.tensorflow.lite)
   implementation(libs.tensorflow.lite.support)
+
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
@@ -136,13 +134,15 @@ dependencies {
   testImplementation(libs.roborazzi)
   testImplementation(libs.roborazzi.compose)
   testImplementation(libs.roborazzi.junit.rule)
+
   androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner)
+
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
+
   "ksp"(libs.androidx.room.compiler)
-  // "ksp"(libs.moshi.kotlin.codegen)
 }
