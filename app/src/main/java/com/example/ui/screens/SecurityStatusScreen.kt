@@ -37,7 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -454,7 +454,7 @@ fun SecurityStatusScreen(
                                 color = AegisTerminalGreen,
                                 fontWeight = FontWeight.Bold
                             )
-                            Divider(
+                            HorizontalDivider(
                                 color = AegisTextMuted.copy(alpha = 0.3f),
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
@@ -658,7 +658,7 @@ private fun CapabilityCard(
             // Expanded Details Section
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Divider(color = AegisBorder)
+                HorizontalDivider(color = AegisBorder)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 DetailRow(label = "Source Ref:", value = item.sourceFileRef, isMonospace = true)

@@ -7,13 +7,14 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+// High-Contrast SecOps Dark Theme Color Scheme (Reduces eye strain during firmware sessions)
 private val DarkColorScheme = darkColorScheme(
     primary = AegisPrimaryCyan,
-    onPrimary = AegisSurface,
+    onPrimary = Color(0xFF00363A),
     primaryContainer = AegisBadgeIndigoBg,
-    onPrimaryContainer = AegisBadgeIndigoText,
-    secondary = AegisBadgeIndigoBg,
-    onSecondary = AegisBadgeIndigoText,
+    onPrimaryContainer = AegisPrimaryCyan,
+    secondary = AegisSecondaryTeal,
+    onSecondary = Color(0xFF003730),
     background = AegisDarkBg,
     onBackground = AegisTextPrimary,
     surface = AegisSurface,
@@ -22,31 +23,31 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = AegisTextSecondary,
     outline = AegisBorder,
     error = AegisDangerRed,
-    onError = AegisSurface
+    onError = Color.White
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF006064), // Darker cyan for light mode
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0F7FA),
-    onPrimaryContainer = Color(0xFF006064),
-    secondary = Color(0xFF4527A0),
-    onSecondary = Color.White,
-    background = Color(0xFFF5F5F5), // Light gray background
-    onBackground = Color(0xFF212121),
-    surface = Color.White,
-    onSurface = Color(0xFF212121),
-    surfaceVariant = Color(0xFFE0E0E0),
-    onSurfaceVariant = Color(0xFF616161),
-    outline = Color(0xFFBDBDBD),
-    error = Color(0xFFD32F2F),
+private val LightColorScheme = darkColorScheme(
+    primary = AegisPrimaryCyan,
+    onPrimary = Color(0xFF00363A),
+    primaryContainer = AegisBadgeIndigoBg,
+    onPrimaryContainer = AegisPrimaryCyan,
+    secondary = AegisSecondaryTeal,
+    onSecondary = Color(0xFF003730),
+    background = AegisDarkBg,
+    onBackground = AegisTextPrimary,
+    surface = AegisSurface,
+    onSurface = AegisTextPrimary,
+    surfaceVariant = AegisSurfaceVariant,
+    onSurfaceVariant = AegisTextSecondary,
+    outline = AegisBorder,
+    error = AegisDangerRed,
     onError = Color.White
 )
 
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Ignored here to keep custom theme
+    darkTheme: Boolean = true, // Default to SecOps Dark Theme for low eye strain
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) {
@@ -61,5 +62,3 @@ fun MyApplicationTheme(
         content = content
     )
 }
-
-

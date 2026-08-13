@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.worker.AuditLogCleanupWorker
 import com.example.worker.SecuritySnapshotWorker
 import java.util.concurrent.TimeUnit
 import androidx.compose.foundation.background
@@ -47,6 +48,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.example.ui.components.AuthenticationErrorView
+import com.example.ui.components.AutoResolutionStatusChip
+import com.example.ui.components.AutoScreenAdaptationContainer
+import com.example.ui.components.WindowAdaptiveClass
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,7 +71,7 @@ import com.example.ui.screens.FirmwareScreen
 import com.example.ui.screens.ForensicsScreen
 import com.example.ui.screens.GovernanceScreen
 import com.example.ui.screens.DeviceSecurityScreen
-import com.example.ui.screens.SecurityStatusScreen
+import com.example.ui.screens.SecurityDashboardScreen
 import com.example.ui.screens.ThreatIntelligenceScreen
 import com.example.ui.theme.AegisBadgeIndigoBg
 import com.example.ui.theme.AegisBadgeIndigoText
@@ -77,8 +84,6 @@ import com.example.ui.theme.AegisSurface
 import com.example.ui.theme.AegisTextPrimary
 import com.example.ui.theme.AegisTextSecondary
 import com.example.ui.theme.MyApplicationTheme
-import com.example.ui.components.AuthenticationErrorView
-import androidx.compose.runtime.setValue
 
 class MainActivity : androidx.fragment.app.FragmentActivity() {
 
@@ -90,6 +95,9 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         enableEdgeToEdge()
         val workRequest = PeriodicWorkRequestBuilder<SecuritySnapshotWorker>(24, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("DailySecuritySnapshot", ExistingPeriodicWorkPolicy.KEEP, workRequest)
+        
+        val cleanupWorkRequest = PeriodicWorkRequestBuilder<AuditLogCleanupWorker>(24, TimeUnit.HOURS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork("DailyAuditLogCleanup", ExistingPeriodicWorkPolicy.KEEP, cleanupWorkRequest)
         setContent {
             MyApplicationTheme {
                 AcingGenesisApp(viewModel = viewModel)
@@ -110,134 +118,214 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
     val currentRole by viewModel.currentRole.collectAsState()
     val lockdownActive by viewModel.zeroTrustLockdown.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+    AutoScreenAdaptationContainer { metrics ->
+        val useNavigationRail = metrics.adaptiveClass != WindowAdaptiveClass.COMPACT || metrics.orientationStr == "LANDSCAPE"
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (useNavigationRail) {
+                NavigationRail(
+                    containerColor = AegisDarkBg,
+                    contentColor = AegisTextSecondary,
+                    header = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = "Acing IU",
+                                tint = AegisPrimaryCyan,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Acing IU",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = AegisTextPrimary
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AegisTextPrimary,
+                                fontFamily = FontFamily.Monospace
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(AegisBadgeIndigoBg)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
+                        }
+                    },
+                    modifier = Modifier.border(androidx.compose.foundation.BorderStroke(1.dp, AegisBorder))
+                ) {
+                    val navItems = listOf(
+                        AppTab.DASHBOARD to ("Status" to Icons.Default.Dashboard),
+                        AppTab.SECURITY_STATUS to ("Matrix" to Icons.Default.Shield),
+                        AppTab.FIRMWARE to ("Firmware" to Icons.Default.FolderZip),
+                        AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
+                        AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
+                        AppTab.AEGIS_AI to ("Aegis AI" to Icons.Default.SmartToy),
+                        AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings)
+                    )
+
+                    navItems.forEach { (tab, pair) ->
+                        val (label, icon) = pair
+                        val isSelected = selectedTab == tab
+                        NavigationRailItem(
+                            selected = isSelected,
+                            onClick = { viewModel.selectTab(tab) },
+                            icon = {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = label,
+                                    tint = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary
+                                )
+                            },
+                            label = {
                                 Text(
-                                    text = "v1.3.1",
+                                    text = label,
+                                    fontSize = 9.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary,
+                                    maxLines = 1
+                                )
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = AegisBadgeIndigoBg
+                            ),
+                            modifier = Modifier.testTag("nav_rail_${tab.name.lowercase()}")
+                        )
+                    }
+                }
+            }
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Acing IU",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = AegisTextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(AegisBadgeIndigoBg)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "v1.3.1",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = AegisBadgeIndigoText
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Genesis IRP | Zero-Trust Platform",
                                     fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
-                                    color = AegisBadgeIndigoText
+                                    color = AegisTextSecondary
+                                )
+                            }
+                        },
+                        actions = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AutoResolutionStatusChip(modifier = Modifier.padding(end = 8.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .padding(end = 12.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (lockdownActive) com.example.ui.theme.AegisDangerRed.copy(alpha = 0.15f) else AegisBadgeIndigoBg)
+                                        .border(1.dp, if (lockdownActive) com.example.ui.theme.AegisDangerRed else AegisBorder, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = if (lockdownActive) "LOCKDOWN" else "ZERO-TRUST OK",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = if (lockdownActive) com.example.ui.theme.AegisDangerRed else AegisBadgeIndigoText
+                                    )
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = AegisDarkBg,
+                            titleContentColor = AegisTextPrimary
+                        )
+                    )
+                },
+                bottomBar = {
+                    if (!useNavigationRail) {
+                        NavigationBar(
+                            containerColor = AegisDarkBg,
+                            contentColor = AegisTextSecondary,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier
+                                .border(androidx.compose.foundation.BorderStroke(1.dp, AegisBorder))
+                                .testTag("bottom_navigation_bar")
+                        ) {
+                            val navItems = listOf(
+                                AppTab.DASHBOARD to ("Status" to Icons.Default.Dashboard),
+                                AppTab.SECURITY_STATUS to ("Matrix" to Icons.Default.Shield),
+                                AppTab.FIRMWARE to ("Firmware" to Icons.Default.FolderZip),
+                                AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
+                                AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
+                                AppTab.AEGIS_AI to ("Aegis AI" to Icons.Default.SmartToy),
+                                AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings)
+                            )
+
+                            navItems.forEach { (tab, pair) ->
+                                val (label, icon) = pair
+                                val isSelected = selectedTab == tab
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { viewModel.selectTab(tab) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = label,
+                                            tint = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = label,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary,
+                                            maxLines = 1
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = AegisBadgeIndigoBg
+                                    ),
+                                    modifier = Modifier.testTag("nav_tab_${tab.name.lowercase()}")
                                 )
                             }
                         }
-                        Text(
-                            text = "Genesis IRP | Zero-Trust Platform",
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = AegisTextSecondary
-                        )
                     }
                 },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (lockdownActive) com.example.ui.theme.AegisDangerRed.copy(alpha = 0.15f) else AegisBadgeIndigoBg)
-                            .border(1.dp, if (lockdownActive) com.example.ui.theme.AegisDangerRed else AegisBorder, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = if (lockdownActive) "LOCKDOWN" else "ZERO-TRUST OK",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (lockdownActive) com.example.ui.theme.AegisDangerRed else AegisBadgeIndigoText
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AegisDarkBg,
-                    titleContentColor = AegisTextPrimary
-                )
-            )
-        },
-        bottomBar = {
-            NavigationBar(
                 containerColor = AegisDarkBg,
-                contentColor = AegisTextSecondary,
-                tonalElevation = 0.dp,
-                modifier = Modifier
-                    .border(androidx.compose.foundation.BorderStroke(1.dp, AegisBorder))
-                    .testTag("bottom_navigation_bar")
-            ) {
-                val navItems = listOf(
-                    AppTab.DASHBOARD to ("Status" to Icons.Default.Dashboard),
-                    AppTab.SECURITY_STATUS to ("Matrix" to Icons.Default.Shield),
-                    AppTab.FIRMWARE to ("Firmware" to Icons.Default.FolderZip),
-                    AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
-                    AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
-                    AppTab.AEGIS_AI to ("Aegis AI" to Icons.Default.SmartToy),
-                    AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings)
-                )
-
-                navItems.forEach { (tab, pair) ->
-                    val (label, icon) = pair
-                    val isSelected = selectedTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { viewModel.selectTab(tab) },
-                        icon = {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                tint = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = label,
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) AegisBadgeIndigoText else AegisTextSecondary,
-                                maxLines = 1
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = AegisBadgeIndigoBg
-                        ),
-                        modifier = Modifier.testTag("nav_tab_${tab.name.lowercase()}")
-                    )
+                modifier = Modifier.fillMaxSize()
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    when (selectedTab) {
+                        AppTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
+                        AppTab.SECURITY_STATUS -> SecurityDashboardScreen(viewModel = viewModel)
+                        AppTab.FIRMWARE -> FirmwareScreen(viewModel = viewModel)
+                        AppTab.DEVICES -> DevicesScreen(viewModel = viewModel)
+                        AppTab.FORENSICS -> ForensicsScreen(viewModel = viewModel)
+                        AppTab.AEGIS_AI -> AegisAiScreen(viewModel = viewModel)
+                        AppTab.GOVERNANCE -> GovernanceScreen(viewModel = viewModel)
+                        AppTab.THREAT_INTEL -> ThreatIntelligenceScreen(viewModel = viewModel)
+                        AppTab.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
+                    }
                 }
-            }
-        },
-        containerColor = AegisDarkBg,
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (selectedTab) {
-                AppTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
-                AppTab.SECURITY_STATUS -> SecurityStatusScreen(viewModel = viewModel)
-                AppTab.FIRMWARE -> FirmwareScreen(viewModel = viewModel)
-                AppTab.DEVICES -> DevicesScreen(viewModel = viewModel)
-                AppTab.FORENSICS -> ForensicsScreen(viewModel = viewModel)
-                AppTab.AEGIS_AI -> AegisAiScreen(viewModel = viewModel)
-                AppTab.GOVERNANCE -> GovernanceScreen(viewModel = viewModel)
-                AppTab.THREAT_INTEL -> ThreatIntelligenceScreen(viewModel = viewModel)
-                AppTab.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
             }
         }
     }
@@ -268,9 +356,9 @@ object AuthSecurityLogger {
 fun AuthScreen(viewModel: AcingViewModel) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val activity = context.findActivity()
-    
+
     var authError by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    
+
     Box(
         modifier = Modifier.fillMaxSize().background(AegisDarkBg).padding(16.dp),
         contentAlignment = Alignment.Center
@@ -294,7 +382,7 @@ fun AuthScreen(viewModel: AcingViewModel) {
                             val biometricManager = androidx.biometric.BiometricManager.from(context)
                             val authenticators = androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
                             val canAuthenticate = biometricManager.canAuthenticate(authenticators)
-                            
+
                             when (canAuthenticate) {
                                 androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS -> {
                                     AuthSecurityLogger.logEvent("BIOMETRIC_CHECK", "Biometric hardware available and enrolled.")
@@ -328,12 +416,11 @@ fun AuthScreen(viewModel: AcingViewModel) {
                                     authError = "Unknown biometric error."
                                 }
                             }
-                            
+
                             if (canAuthenticate != androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS) {
-                                // Do not bypass anymore, show the error view instead
                                 return@Button
                             }
-    
+
                             val executor = androidx.core.content.ContextCompat.getMainExecutor(context)
                             val biometricPrompt = androidx.biometric.BiometricPrompt(activity, executor,
                                 object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
@@ -358,7 +445,7 @@ fun AuthScreen(viewModel: AcingViewModel) {
                                 .setSubtitle("Verify identity to access intelligence dashboard")
                                 .setAllowedAuthenticators(authenticators)
                                 .build()
-                            
+
                             AuthSecurityLogger.logEvent("AUTH_PROMPT", "Launching biometric prompt...")
                             biometricPrompt.authenticate(promptInfo)
                         } else {

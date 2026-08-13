@@ -39,6 +39,14 @@ class SecurityRepository(private val dao: SecurityDao) {
         dao.insertFirmwareScan(scan)
     }
 
+    suspend fun getLogsOlderThan(cutoffTimestamp: Long): List<AuditLogEntity> {
+        return dao.getLogsOlderThan(cutoffTimestamp)
+    }
+
+    suspend fun deleteLogsOlderThan(cutoffTimestamp: Long): Int {
+        return dao.deleteLogsOlderThan(cutoffTimestamp)
+    }
+
     suspend fun clearLogs() {
         dao.clearAuditLogs()
     }

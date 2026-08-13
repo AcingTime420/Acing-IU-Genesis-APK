@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AcingViewModel
+import com.example.ui.components.QrCodeScannerComponent
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.SeverityBadge
 import com.example.ui.theme.AegisBorder
@@ -85,6 +86,14 @@ fun DevicesScreen(
                 title = "Device Diagnostics & Telemetry",
                 subtitle = "Hardware-backed keymaster, battery & SELinux posture",
                 icon = Icons.Default.PhoneAndroid
+            )
+        }
+
+        item {
+            QrCodeScannerComponent(
+                onScanResult = { scannedData, isFirmware ->
+                    viewModel.registerScannedInventoryPayload(scannedData, isFirmware)
+                }
             )
         }
 

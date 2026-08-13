@@ -14,6 +14,12 @@ interface SecurityDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuditLog(log: AuditLogEntity)
 
+    @Query("SELECT * FROM audit_logs WHERE timestamp < :cutoffTimestamp ORDER BY timestamp ASC")
+    suspend fun getLogsOlderThan(cutoffTimestamp: Long): List<AuditLogEntity>
+
+    @Query("DELETE FROM audit_logs WHERE timestamp < :cutoffTimestamp")
+    suspend fun deleteLogsOlderThan(cutoffTimestamp: Long): Int
+
     @Query("DELETE FROM audit_logs")
     suspend fun clearAuditLogs()
 

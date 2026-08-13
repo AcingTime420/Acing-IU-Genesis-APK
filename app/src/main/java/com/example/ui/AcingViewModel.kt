@@ -262,6 +262,48 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun registerScannedInventoryPayload(scannedData: String, isFirmwareManifest: Boolean) {
+        viewModelScope.launch {
+            if (isFirmwareManifest) {
+                repository.recordFirmwareScan(
+                    FirmwareScanEntity(
+                        imageName = "Scanned Manifest Payload",
+                        partitionName = "boot_manifest.url",
+                        sha256Hash = scannedData,
+                        signatureStatus = "VERIFIED_QR_MANIFEST",
+                        isVerified = true
+                    )
+                )
+                repository.logEvent(
+                    category = "INVENTORY_SCANNER",
+                    title = "Firmware Manifest URL Registered via QR",
+                    details = "Manifest URL: $scannedData",
+                    severity = "INFO",
+                    outcome = "SUCCESS"
+                )
+            } else {
+                repository.recordDeviceSnapshot(
+                    DeviceSnapshotEntity(
+                        deviceName = scannedData,
+                        androidVersion = "Android 15 (Target)",
+                        selinuxState = "Enforcing",
+                        avbState = "Locked (AVB 2.0)",
+                        hardwareKeystore = "StrongBox TEE",
+                        cveCount = 0,
+                        healthScore = 98
+                    )
+                )
+                repository.logEvent(
+                    category = "INVENTORY_SCANNER",
+                    title = "Device Serial Registered via QR",
+                    details = "Serial/Device ID: $scannedData",
+                    severity = "INFO",
+                    outcome = "SUCCESS"
+                )
+            }
+        }
+    }
+
 
     // Interactive Log Analysis Dialog State
     private val _logAnalysisResult = MutableStateFlow<String?>(null)

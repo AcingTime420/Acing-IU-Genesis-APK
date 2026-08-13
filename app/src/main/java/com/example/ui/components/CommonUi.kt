@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,12 +38,9 @@ import com.example.ui.theme.AegisBadgePurpleText
 import com.example.ui.theme.AegisBadgeRedBg
 import com.example.ui.theme.AegisBadgeRedText
 import com.example.ui.theme.AegisBorder
-import com.example.ui.theme.AegisDangerRed
-import com.example.ui.theme.AegisInfoBlue
 import com.example.ui.theme.AegisPrimaryCyan
 import com.example.ui.theme.AegisSecureGreen
 import com.example.ui.theme.AegisSurface
-import com.example.ui.theme.AegisSurfaceVariant
 import com.example.ui.theme.AegisTextPrimary
 import com.example.ui.theme.AegisTextSecondary
 import com.example.ui.theme.AegisWarningGold
@@ -96,7 +92,7 @@ fun SeverityBadge(
     val triple: Triple<Color, Color, String> = when (severity.uppercase()) {
         "SECURE" -> Triple(AegisBadgeIndigoBg, AegisBadgeIndigoText, "SECURE")
         "CRITICAL" -> Triple(AegisBadgeRedBg, AegisBadgeRedText, "CRITICAL")
-        "WARNING" -> Triple(AegisBadgePurpleBg, AegisBadgePurpleText, "WARNING")
+        "WARNING", "WARN" -> Triple(AegisBadgePurpleBg, AegisBadgePurpleText, "WARNING")
         else -> Triple(AegisBadgeIndigoBg, AegisBadgeIndigoText, "INFO")
     }
     val bgColor = triple.first
@@ -249,3 +245,57 @@ fun AuditLogRowItem(
     }
 }
 
+@Composable
+fun AuditLogRowItem(
+    log: com.example.acingiu.data.AuditLogEntity,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = AegisSurface),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AegisBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SeverityBadge(severity = log.securityType)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Acing IU Audit",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = AegisTextSecondary
+                        )
+                    }
+                    Text(
+                        text = "Digest: ${log.validationDigest.take(12)}...",
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = AegisTextSecondary.copy(alpha = 0.8f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = log.eventContext,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AegisTextPrimary
+                )
+                Text(
+                    text = "Type: ${log.securityType} | Timestamp: ${log.timestamp}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AegisTextSecondary
+                )
+            }
+        }
+    }
+}

@@ -25,5 +25,7 @@ abstract class AcingDatabase : RoomDatabase() {
                 instance
             }
         }
+
+        fun getDatabase(context: Context): AcingDatabase = getInstance(context)
     }
 }
