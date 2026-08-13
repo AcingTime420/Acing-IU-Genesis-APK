@@ -5,6 +5,7 @@ import com.example.BuildConfig
 
 enum class GeminiConfigStatus {
     CONFIGURED,
+    ACTIVE,
     MISSING_OR_PLACEHOLDER,
     INVALID_FORMAT,
     SERVICE_UNAVAILABLE

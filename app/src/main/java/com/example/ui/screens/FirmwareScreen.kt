@@ -1,68 +1,62 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.FolderZip
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.example.data.FirmwareScanEntity
 import com.example.ui.AcingViewModel
 import com.example.ui.components.BuildPropFirmwareSecurityComponent
 import com.example.ui.components.OdinFirmwareVerifierView
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.SeverityBadge
-import com.example.ui.theme.AegisBorder
-import com.example.ui.theme.AegisDarkBg
-import com.example.ui.theme.AegisPrimaryCyan
-import com.example.ui.theme.AegisSecureGreen
-import com.example.ui.theme.AegisSurface
-import com.example.ui.theme.AegisTextPrimary
-import com.example.ui.theme.AegisTextSecondary
+import com.example.ui.theme.*
+
+private fun Context.findFragmentActivity(): FragmentActivity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
 
 @Composable
 fun FirmwareScreen(
     viewModel: AcingViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val isBiometricUnlocked by viewModel.isFirmwareBiometricUnlocked.collectAsState()
+    val currentRole by viewModel.currentRole.collectAsState()
+
     val firmwareScans by viewModel.firmwareScans.collectAsState()
     val firmwareAnalysisResult by viewModel.firmwareAnalysisResult.collectAsState()
     val isAnalyzingFirmware by viewModel.isAnalyzingFirmware.collectAsState()
@@ -77,18 +71,127 @@ fun FirmwareScreen(
     val odinFirmwareResult by viewModel.odinFirmwareResult.collectAsState()
     val isVerifyingOdin by viewModel.isVerifyingOdin.collectAsState()
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    val firmwareProgress by viewModel.firmwareAnalysisProgress.collectAsState()
+    val isOfflinePolicyActive by viewModel.isOfflinePolicyActive.collectAsState()
+    val lastOfflineVerification by viewModel.lastOfflineVerification.collectAsState()
+
+    com.example.ui.components.SecurityGatekeeper(
+        modifier = modifier,
+        isUnlocked = isBiometricUnlocked,
+        onUnlockChanged = { unlocked, auditReason ->
+            viewModel.setFirmwareBiometricUnlocked(unlocked, auditReason)
+        },
+        title = "RESTRICTED FIRMWARE SUITE",
+        subtitle = "Biometric Verification Required",
+        description = "Sensitive cryptographic partition digests, bootkit telemetry, dm-verity tables, and Odin binary artifacts require zero-trust biometric authorization.",
+        autoPrompt = true
     ) {
+        // Unlocked Sensitive Firmware Analysis Suite
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
+            Spacer(modifier = Modifier.height(8.dp))
+            // Authenticated Session Header Badge
+            Card(
+                colors = CardDefaults.cardColors(containerColor = AegisBadgeIndigoBg),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AegisBadgeIndigoText.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth().testTag("firmware_authenticated_banner")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.VerifiedUser, contentDescription = "Verified", tint = AegisSecureGreen, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "BIOMETRIC AUTHENTICATED: TEE UNLOCKED",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = AegisSecureGreen
+                            )
+                            Text(
+                                text = "Authorized for ${currentRole.label} | Audit trail active",
+                                fontSize = 10.sp,
+                                color = AegisTextSecondary
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.lockFirmwareBiometricSession() },
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.testTag("lock_firmware_session_button")
+                    ) {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = AegisTextSecondary, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Lock", fontSize = 10.sp, color = AegisTextSecondary)
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
             SectionHeader(
                 title = "Android Firmware & Partition Analysis",
                 subtitle = "Inspect boot, recovery, system & vendor images for AVB 2.0 integrity",
                 icon = Icons.Default.FolderZip
+            )
+        }
+
+        // Linear Progress Bar Firmware Partition Analysis Routine
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                com.example.ui.components.FirmwareAnalysisProgressBar(
+                    filesProcessed = firmwareProgress.filesProcessed,
+                    totalFiles = firmwareProgress.totalFiles,
+                    currentFileName = firmwareProgress.currentFileName,
+                    currentPhase = firmwareProgress.currentPhase,
+                    isComplete = firmwareProgress.isComplete,
+                    throughputMbPerSec = firmwareProgress.throughputMbPerSec
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.runComprehensiveFirmwareSweep() },
+                        colors = ButtonDefaults.buttonColors(containerColor = AegisPrimaryCyan, contentColor = AegisDarkBg),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !firmwareProgress.isRunning,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                            .testTag("run_firmware_sweep_button")
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (firmwareProgress.isRunning) "SWEEPING..." else "RUN FIRMWARE SWEEP",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+
+        // Local 'Fallback Security Policy' Module (Offline TFLite Model Verification)
+        item {
+            com.example.ui.components.FallbackSecurityPolicyCard(
+                viewModel = viewModel
             )
         }
 
@@ -205,6 +308,7 @@ fun FirmwareScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+    }
 }
 
 @Composable
@@ -301,3 +405,4 @@ fun PartitionCard(
         }
     }
 }
+

@@ -73,6 +73,7 @@ fun SecurityDashboardScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val auditLogs by viewModel.auditLogs.collectAsState()
+    val firmwareScans by viewModel.firmwareScans.collectAsState()
     val selinuxEnforced by viewModel.selinuxEnforced.collectAsState()
     val zeroTrustLockdown by viewModel.zeroTrustLockdown.collectAsState()
     val biometricLockout by viewModel.biometricLockoutProtection.collectAsState()
@@ -200,6 +201,13 @@ fun SecurityDashboardScreen(
                     }
                 }
             }
+        }
+
+        // Threat Vector Distribution Donut Chart (visualizing detected vulnerabilities found during recent firmware scans)
+        item {
+            com.example.ui.components.ThreatVectorDistributionDonutChart(
+                firmwareScans = firmwareScans
+            )
         }
 
         // Threat Analytics Timeline Chart & Network Interface Metrics

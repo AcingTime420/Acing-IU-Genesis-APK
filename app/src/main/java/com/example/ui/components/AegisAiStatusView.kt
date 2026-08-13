@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -39,6 +41,33 @@ fun AegisAiStatusView(
 
     val isErrorState = serviceErrorMessage != null || validationResult.status == GeminiConfigStatus.SERVICE_UNAVAILABLE
     val isMissingConfig = validationResult.status == GeminiConfigStatus.MISSING_OR_PLACEHOLDER || validationResult.status == GeminiConfigStatus.INVALID_FORMAT
+    val isSessionActive = validationResult.status == GeminiConfigStatus.ACTIVE ||
+                          validationResult.status == GeminiConfigStatus.CONFIGURED ||
+                          (!isErrorState && !isMissingConfig)
+
+    // Subtle infinite pulsing animation using Compose animateFloatAsState when Gemini AI status is ACTIVE
+    var pulsePhase by remember { mutableStateOf(false) }
+    LaunchedEffect(isSessionActive) {
+        if (isSessionActive) {
+            while (true) {
+                pulsePhase = !pulsePhase
+                kotlinx.coroutines.delay(1200)
+            }
+        } else {
+            pulsePhase = false
+        }
+    }
+
+    val pulseScale by animateFloatAsState(
+        targetValue = if (isSessionActive && pulsePhase) 1.28f else 0.90f,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "gemini_active_pulse_scale"
+    )
+    val pulseAlpha by animateFloatAsState(
+        targetValue = if (isSessionActive && pulsePhase) 0.90f else 0.35f,
+        animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+        label = "gemini_active_pulse_alpha"
+    )
 
     val cardBg = when {
         isErrorState -> Color(0xFF3B1E1E)
@@ -46,11 +75,13 @@ fun AegisAiStatusView(
         else -> AegisSurface
     }
 
-    val borderColor = when {
+    val statusColor = when {
         isErrorState -> AegisDangerRed
         isMissingConfig -> AegisWarningGold
         else -> AegisSecureGreen
     }
+
+    val borderColor = statusColor.copy(alpha = 0.5f + (pulseAlpha * 0.5f))
 
     val statusTitle = when {
         isErrorState -> "AI SERVICE UNAVAILABLE"
@@ -81,17 +112,25 @@ fun AegisAiStatusView(
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    isErrorState -> AegisDangerRed
-                                    isMissingConfig -> AegisWarningGold
-                                    else -> AegisSecureGreen
-                                }
-                            )
-                    )
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(16.dp)
+                    ) {
+                        // Outer glowing pulse ring
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .scale(pulseScale)
+                                .clip(CircleShape)
+                                .background(statusColor.copy(alpha = pulseAlpha * 0.45f))
+                        )
+                        // Core solid indicator dot
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(statusColor)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -122,7 +161,7 @@ fun AegisAiStatusView(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(AegisTerminalBg)
-                                .border(1.dp, borderColor.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+                                .border(1.dp, statusColor.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
                                 .clickable { showGuide = !showGuide }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                 .testTag("troubleshoot_toggle_btn")

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="forensic_cache" path="." />
+    <cache-path name="forensic_exports" path="forensic_exports/" />
+    <files-path name="forensic_files" path="." />
+</paths>

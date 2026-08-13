@@ -11,8 +11,9 @@
 # ===================================================================
 -dontwarn androidx.room.paging.**
 -keep class androidx.room.** { *; }
--keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.room.RoomDatabase { *; }
 -keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
 -keep @androidx.room.Dao class * { *; }
 -keep @androidx.room.TypeConverter class * { *; }
 -keep @androidx.room.Database class * { *; }
@@ -26,6 +27,9 @@
 -keep class * extends androidx.room.migration.Migration { *; }
 -keep class * extends androidx.room.RoomOpenHelper$Delegate { *; }
 -keep class *_Impl { *; }
+-keep class com.example.data.SecurityAuditEventEntity { *; }
+-keep class com.example.data.SecurityAuditDao { *; }
+-keep class com.example.data.SecurityAuditDatabase { *; }
 
 # ===================================================================
 # Moshi JSON Keep Rules
@@ -46,6 +50,7 @@
     public <init>(java.lang.reflect.Type[], java.util.Set);
     public <init>(...);
 }
+-keep class com.squareup.moshi.internal.** { *; }
 
 # ===================================================================
 # Firebase & Google Play Services Keep Rules
@@ -60,6 +65,9 @@
 -keep class * implements com.google.firebase.appcheck.AppCheckProviderFactory
 -keep class com.google.firebase.appcheck.** { *; }
 -keep class com.google.firebase.ai.** { *; }
+-keep class com.google.firebase.components.** { *; }
+-keep class com.google.firebase.inject.** { *; }
+-keep class com.google.firebase.installations.** { *; }
 
 # Firebase entity and serialization fields
 -keepclassmembers class * {
@@ -90,19 +98,30 @@
 -dontwarn org.tensorflow.lite.**
 
 # ===================================================================
-# AndroidX WorkManager Worker Initialization
+# AndroidX Biometric & WorkManager
 # ===================================================================
+-keep class androidx.biometric.** { *; }
+-dontwarn androidx.biometric.**
 -keep class * extends androidx.work.ListenableWorker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 -keep class * extends androidx.work.Worker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
+-keep class * extends androidx.work.CoroutineWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
 
 # ===================================================================
-# Application Data Models, Security & Forensics Entities
+# Application Data Models, Security, Firmware & Forensics Entities
 # ===================================================================
 -keep class com.example.data.** { *; }
 -keep class com.example.security.** { *; }
+-keep class com.example.firmware.** { *; }
 -keep class com.example.forensics.** { *; }
 -keep class com.example.trust.** { *; }
+-keep class com.example.logging.** { *; }
+-keep class com.example.worker.** { *; }
+-keep class com.example.billing.** { *; }
+-keep class com.example.agent.** { *; }
+-keep class com.example.ai.** { *; }

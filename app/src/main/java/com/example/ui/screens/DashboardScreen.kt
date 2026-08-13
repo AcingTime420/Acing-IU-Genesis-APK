@@ -99,6 +99,8 @@ fun DashboardScreen(
     val isGeneratingBriefing by viewModel.isGeneratingBriefing.collectAsState()
     val trustReport by viewModel.deviceTrustReport.collectAsState()
     val telemetryInput by viewModel.currentTelemetryInput.collectAsState()
+    val isOfflinePolicyActive by viewModel.isOfflinePolicyActive.collectAsState()
+    val restrictedState by viewModel.restrictedModeState.collectAsState()
 
     val latestSnapshot = snapshots.firstOrNull()
 
@@ -115,6 +117,61 @@ fun DashboardScreen(
                 lockdownActive = lockdownActive,
                 onRunAudit = { viewModel.runFullSecurityAudit() }
             )
+        }
+
+        if (isOfflinePolicyActive) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("dashboard_offline_restricted_banner"),
+                    colors = CardDefaults.cardColors(containerColor = AegisWarningGold.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AegisWarningGold)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "Offline Mode",
+                                tint = AegisWarningGold,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Restricted Mode Active (Offline Fallback Policy)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = AegisWarningGold
+                                )
+                                Text(
+                                    text = "Local TFLite file signature verification engine engaged.",
+                                    fontSize = 10.sp,
+                                    color = AegisTextSecondary
+                                )
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { viewModel.verifyFileWithFallbackSecurityPolicy("boot.img") },
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.testTag("quick_verify_boot_dash_btn")
+                        ) {
+                            Text("Verify boot.img", fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = AegisWarningGold)
+                        }
+                    }
+                }
+            }
         }
 
         if (trustReport != null) {

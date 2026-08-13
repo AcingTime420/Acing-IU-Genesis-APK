@@ -98,6 +98,21 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         
         val cleanupWorkRequest = PeriodicWorkRequestBuilder<AuditLogCleanupWorker>(24, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("DailyAuditLogCleanup", ExistingPeriodicWorkPolicy.KEEP, cleanupWorkRequest)
+
+        val chargingConstraints = androidx.work.Constraints.Builder()
+            .setRequiresCharging(true)
+            .setRequiresBatteryNotLow(true)
+            .build()
+
+        val firmwareCleanupRequest = PeriodicWorkRequestBuilder<com.example.worker.FirmwareCleanupWorker>(12, TimeUnit.HOURS)
+            .setConstraints(chargingConstraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "FirmwareCleanupChargingWorker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            firmwareCleanupRequest
+        )
         setContent {
             MyApplicationTheme {
                 AcingGenesisApp(viewModel = viewModel)

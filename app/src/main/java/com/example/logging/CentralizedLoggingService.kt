@@ -105,6 +105,41 @@ class CentralizedLoggingService(private val repository: SecurityRepository) {
         )
     }
 
+    suspend fun logFirmwareAuditSession(
+        sessionName: String,
+        details: String,
+        severity: String = "INFO",
+        role: String = "Principal Architect",
+        outcome: String = "SUCCESS"
+    ): String {
+        return logOperation(
+            category = "Firmware Audit Trail",
+            title = "Firmware Session: $sessionName",
+            details = details,
+            severity = severity,
+            role = role,
+            correlationId = generateCorrelationId("FW-SESS"),
+            outcome = outcome
+        )
+    }
+
+    suspend fun logBiometricChallenge(
+        screenTarget: String,
+        isSuccess: Boolean,
+        role: String,
+        reason: String? = null
+    ): String {
+        return logOperation(
+            category = "Biometric Security",
+            title = if (isSuccess) "Biometric Auth Succeeded: $screenTarget" else "Biometric Auth Failed: $screenTarget",
+            details = if (isSuccess) "Identity authenticated before accessing sensitive $screenTarget." else "Access denied: ${reason ?: "Biometric verification unsuccessful"}",
+            severity = if (isSuccess) "SECURE" else "WARNING",
+            role = role,
+            correlationId = generateCorrelationId("BIO-GATE"),
+            outcome = if (isSuccess) "AUTHORIZED" else "REJECTED"
+        )
+    }
+
     suspend fun logTelemetrySubmission(
         hardwareId: String,
         isValid: Boolean,
