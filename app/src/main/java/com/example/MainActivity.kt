@@ -43,13 +43,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.ui.components.AuthenticationErrorView
 import com.example.ui.components.AutoResolutionStatusChip
 import com.example.ui.components.AutoScreenAdaptationContainer
+import com.example.ui.components.CapabilitiesEncyclopediaDialog
+import com.example.ui.components.TutorialDialog
 import com.example.ui.components.WindowAdaptiveClass
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -132,6 +139,9 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val currentRole by viewModel.currentRole.collectAsState()
     val lockdownActive by viewModel.zeroTrustLockdown.collectAsState()
+
+    var showTutorialDialog by remember { mutableStateOf(false) }
+    var showEncyclopediaDialog by remember { mutableStateOf(false) }
 
     AutoScreenAdaptationContainer { metrics ->
         val useNavigationRail = metrics.adaptiveClass != WindowAdaptiveClass.COMPACT || metrics.orientationStr == "LANDSCAPE"
@@ -244,15 +254,41 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                         },
                         actions = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                AutoResolutionStatusChip(modifier = Modifier.padding(end = 8.dp))
+                                // Functions Encyclopedia Button
+                                IconButton(
+                                    onClick = { showEncyclopediaDialog = true },
+                                    modifier = Modifier.testTag("topbar_encyclopedia_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = "Functions Encyclopedia",
+                                        tint = AegisPrimaryCyan,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                // Interactive Tutorial Button
+                                IconButton(
+                                    onClick = { showTutorialDialog = true },
+                                    modifier = Modifier.testTag("topbar_tutorial_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.HelpOutline,
+                                        contentDescription = "Platform Tutorial",
+                                        tint = AegisBadgeIndigoText,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                AutoResolutionStatusChip(modifier = Modifier.padding(end = 4.dp))
 
                                 Box(
                                     modifier = Modifier
-                                        .padding(end = 12.dp)
+                                        .padding(end = 8.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(if (lockdownActive) com.example.ui.theme.AegisDangerRed.copy(alpha = 0.15f) else AegisBadgeIndigoBg)
                                         .border(1.dp, if (lockdownActive) com.example.ui.theme.AegisDangerRed else AegisBorder, RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = if (lockdownActive) "LOCKDOWN" else "ZERO-TRUST OK",
@@ -339,6 +375,26 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                         AppTab.GOVERNANCE -> GovernanceScreen(viewModel = viewModel)
                         AppTab.THREAT_INTEL -> ThreatIntelligenceScreen(viewModel = viewModel)
                         AppTab.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
+                    }
+
+                    if (showTutorialDialog) {
+                        TutorialDialog(
+                            viewModel = viewModel,
+                            onDismiss = { showTutorialDialog = false },
+                            onNavigateToTab = { tab ->
+                                viewModel.selectTab(tab)
+                            }
+                        )
+                    }
+
+                    if (showEncyclopediaDialog) {
+                        CapabilitiesEncyclopediaDialog(
+                            viewModel = viewModel,
+                            onDismiss = { showEncyclopediaDialog = false },
+                            onNavigateToTab = { tab ->
+                                viewModel.selectTab(tab)
+                            }
+                        )
                     }
                 }
             }

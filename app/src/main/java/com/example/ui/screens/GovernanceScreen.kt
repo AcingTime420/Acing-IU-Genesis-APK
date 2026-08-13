@@ -22,7 +22,18 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import com.example.ui.components.TutorialDialog
+import com.example.ui.components.CapabilitiesEncyclopediaDialog
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +47,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +76,9 @@ fun GovernanceScreen(
     val governanceAuditResult by viewModel.governanceAuditResult.collectAsState()
     val isAuditingGovernance by viewModel.isAuditingGovernance.collectAsState()
 
+    var showTutorialDialog by remember { mutableStateOf(false) }
+    var showEncyclopediaDialog by remember { mutableStateOf(false) }
+
     val apiKey = try { BuildConfig.GEMINI_API_KEY } catch (e: Throwable) { "" }
     val apiKeyConfigured = apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY"
 
@@ -80,6 +95,107 @@ fun GovernanceScreen(
                 subtitle = "Role-Based Access Control (RBAC) & secrets verification",
                 icon = Icons.Default.AdminPanelSettings
             )
+        }
+
+        // Platform Guide & Documentation Quick Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("governance_tutorial_and_encyclopedia_card"),
+                colors = CardDefaults.cardColors(containerColor = AegisSurface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AegisPrimaryCyan.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(AegisPrimaryCyan.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RocketLaunch,
+                                contentDescription = "Guide",
+                                tint = AegisPrimaryCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Platform Guide & Functions Directory",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AegisTextPrimary
+                            )
+                            Text(
+                                text = "Interactive subsystem walkthrough & capabilities reference",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = AegisTextSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Access step-by-step onboarding for Genesis IRP zero-trust workflows, or view a full breakdown of every function's purpose, architecture, and role requirements.",
+                        fontSize = 11.sp,
+                        color = AegisTextSecondary,
+                        lineHeight = 15.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { showTutorialDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = AegisPrimaryCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("governance_start_tutorial_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HelpOutline,
+                                contentDescription = "Tutorial",
+                                tint = Color.Black,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Launch Tutorial", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showEncyclopediaDialog = true },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AegisPrimaryCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("governance_open_encyclopedia_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = "Encyclopedia",
+                                tint = AegisPrimaryCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Capabilities Guide", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AegisPrimaryCyan)
+                        }
+                    }
+                }
+            }
         }
 
         item {
@@ -357,5 +473,25 @@ fun GovernanceScreen(
         item {
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    if (showTutorialDialog) {
+        TutorialDialog(
+            viewModel = viewModel,
+            onDismiss = { showTutorialDialog = false },
+            onNavigateToTab = { tab ->
+                viewModel.selectTab(tab)
+            }
+        )
+    }
+
+    if (showEncyclopediaDialog) {
+        CapabilitiesEncyclopediaDialog(
+            viewModel = viewModel,
+            onDismiss = { showEncyclopediaDialog = false },
+            onNavigateToTab = { tab ->
+                viewModel.selectTab(tab)
+            }
+        )
     }
 }

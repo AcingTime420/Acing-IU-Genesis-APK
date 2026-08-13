@@ -58,12 +58,21 @@ import com.example.R
 import com.example.data.AuditLogEntity
 import com.example.ui.AcingViewModel
 import com.example.ui.AppTab
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.ui.components.TutorialDialog
+import com.example.ui.components.CapabilitiesEncyclopediaDialog
 import com.example.ui.components.AuditLogRowItem
 import com.example.ui.components.DeviceTrustDashboardComponent
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.SeverityBadge
 import com.example.ui.components.StatusCard
 import com.example.ui.theme.AegisBadgeIndigoBg
+import com.example.ui.theme.AegisBadgeIndigoText
 import com.example.ui.theme.AegisBadgePurpleBg
 import com.example.ui.theme.AegisBadgePurpleText
 import com.example.ui.theme.AegisBadgeRedBg
@@ -102,6 +111,9 @@ fun DashboardScreen(
     val isOfflinePolicyActive by viewModel.isOfflinePolicyActive.collectAsState()
     val restrictedState by viewModel.restrictedModeState.collectAsState()
 
+    var showTutorialDialog by remember { mutableStateOf(false) }
+    var showEncyclopediaDialog by remember { mutableStateOf(false) }
+
     val latestSnapshot = snapshots.firstOrNull()
 
     LazyColumn(
@@ -117,6 +129,110 @@ fun DashboardScreen(
                 lockdownActive = lockdownActive,
                 onRunAudit = { viewModel.runFullSecurityAudit() }
             )
+        }
+
+        // Platform Tutorial & Functions Summary Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("dashboard_tutorial_and_encyclopedia_card"),
+                colors = CardDefaults.cardColors(containerColor = AegisSurface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AegisBadgeIndigoBg)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(AegisBadgeIndigoBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.RocketLaunch,
+                                    contentDescription = "Onboarding",
+                                    tint = AegisBadgeIndigoText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Platform Tutorial & Function Guide",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AegisTextPrimary
+                                )
+                                Text(
+                                    text = "Step-by-step walkthrough & technical capabilities directory",
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = AegisTextSecondary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "New to Genesis IRP or need a quick refresher? Explore interactive guided steps across all subsystems, or browse detailed summaries for each security function, its purpose, architecture, and role requirements.",
+                        fontSize = 11.sp,
+                        color = AegisTextSecondary,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { showTutorialDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = AegisPrimaryCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("dashboard_start_tutorial_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HelpOutline,
+                                contentDescription = "Tutorial",
+                                tint = Color.Black,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Start Tutorial", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showEncyclopediaDialog = true },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AegisPrimaryCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("dashboard_open_encyclopedia_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = "Capabilities",
+                                tint = AegisPrimaryCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Functions Directory", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AegisPrimaryCyan)
+                        }
+                    }
+                }
+            }
         }
 
         if (isOfflinePolicyActive) {
@@ -398,6 +514,26 @@ fun DashboardScreen(
         item {
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    if (showTutorialDialog) {
+        TutorialDialog(
+            viewModel = viewModel,
+            onDismiss = { showTutorialDialog = false },
+            onNavigateToTab = { tab ->
+                viewModel.selectTab(tab)
+            }
+        )
+    }
+
+    if (showEncyclopediaDialog) {
+        CapabilitiesEncyclopediaDialog(
+            viewModel = viewModel,
+            onDismiss = { showEncyclopediaDialog = false },
+            onNavigateToTab = { tab ->
+                viewModel.selectTab(tab)
+            }
+        )
     }
 }
 
