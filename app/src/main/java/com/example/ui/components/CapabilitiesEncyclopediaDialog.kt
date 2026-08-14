@@ -114,6 +114,316 @@ enum class FunctionCategory(val label: String) {
     BIOMETRICS_HARDWARE("Biometrics & Hardware")
 }
 
+val allCapabilityItems: List<FunctionCapabilityItem> = listOf(
+    FunctionCapabilityItem(
+        id = "device_trust_index",
+        name = "Device Trust Index (DTI) Scoring Engine",
+        category = FunctionCategory.CORE_SECURITY,
+        icon = Icons.Default.Speed,
+        purpose = "Evaluates multi-factor hardware security signals to produce a normalized 0-100 real-time security posture score.",
+        capabilities = listOf(
+            "Aggregates 10 zero-trust vectors into a single trusted baseline",
+            "Calculates dynamic penalty weights for unlocked bootloaders and unpinned TLS",
+            "Provides instantaneous executive posture indicators"
+        ),
+        technicalArchitecture = "Calculated via DeviceTrustService by sampling hardware keystore attestation, SELinux kernel states, and AVB 2.0 tree validation.",
+        requiredRole = "Available to all roles (Principal, Auditor, Engineer)",
+        producedArtifact = "Normalized DTI Score (0-100) & Real-time Trust Posture Banner",
+        targetTab = AppTab.DASHBOARD
+    ),
+    FunctionCapabilityItem(
+        id = "avb_boot_chain",
+        name = "AVB 2.0 Android Verified Boot Validator",
+        category = FunctionCategory.CORE_SECURITY,
+        icon = Icons.Default.Shield,
+        purpose = "Cryptographically verifies the authenticity and integrity of boot partitions from bootloader to system image.",
+        capabilities = listOf(
+            "Validates vbmeta.img RSA-4096 signature against Genesis OEM root key",
+            "Verifies dm-verity Merkle tree root hashes for partition tamper-proofing",
+            "Flags yellow/orange/red boot states caused by custom ROMs or modified boot images"
+        ),
+        technicalArchitecture = "AVB 2.0 specification parser with SHA-256 digest calculation across partition descriptors.",
+        requiredRole = "Security Auditor & Principal Architect",
+        producedArtifact = "AVB 2.0 Boot Chain Verification State & Tamper Alert Logs",
+        targetTab = AppTab.SECURITY_STATUS
+    ),
+    FunctionCapabilityItem(
+        id = "selinux_enforcement",
+        name = "SELinux Policy Generator & Enforcer",
+        category = FunctionCategory.CORE_SECURITY,
+        icon = Icons.Default.Security,
+        purpose = "Enforces Mandatory Access Control (MAC) domain boundaries and generates Type Enforcement (.te) security rules.",
+        capabilities = listOf(
+            "Detects Permissive or Disabled SELinux states",
+            "Generates custom Knox & AOSP Type Enforcement (.te) macro policies",
+            "Isolates rogue system services from accessing raw device block nodes"
+        ),
+        technicalArchitecture = "SelinuxPolicyGenerator engine generating audit2allow-compatible policy rules and checking /sys/fs/selinux/enforce.",
+        requiredRole = "Principal Architect",
+        producedArtifact = "SELinux Type Enforcement (.te) Policy File & Enforcing Mode Switch",
+        targetTab = AppTab.SECURITY_STATUS
+    ),
+    FunctionCapabilityItem(
+        id = "firmware_partition_analyzer",
+        name = "Multi-Threaded Firmware Partition Analyzer",
+        category = FunctionCategory.FIRMWARE_BOOT,
+        icon = Icons.Default.FolderZip,
+        purpose = "Performs deep multi-stage binary inspection on flashed partition images (boot, vbmeta, vendor_boot, dtbo).",
+        capabilities = listOf(
+            "Calculates real-time throughput in Megabytes/sec (MB/s)",
+            "Parses Android Boot Header v2/v3/v4 magic signatures",
+            "Computes cryptographic SHA-256 and SHA-1 checksums",
+            "Simulates background firmware partition extraction and integrity checks"
+        ),
+        technicalArchitecture = "BuildPropAndFirmwareSecurityEngine leveraging Kotlin Coroutines for asynchronous streaming file parsing.",
+        requiredRole = "Systems Engineer & Principal Architect",
+        producedArtifact = "Firmware Partition Analysis Report & Integrity Verification Summary",
+        targetTab = AppTab.FIRMWARE
+    ),
+    FunctionCapabilityItem(
+        id = "shannon_entropy_analyzer",
+        name = "Shannon Byte Entropy Anomaly Engine",
+        category = FunctionCategory.FIRMWARE_BOOT,
+        icon = Icons.Default.AutoFixHigh,
+        purpose = "Analyzes raw binary byte distributions to detect encrypted payloads, obfuscated shellcode, and hidden packers.",
+        capabilities = listOf(
+            "Measures byte randomness on a 0.0 to 8.0 Shannon scale",
+            "Identifies high-entropy regions (>7.90) indicative of compressed or encrypted malware",
+            "Visualizes entropy curves across individual partition blocks"
+        ),
+        technicalArchitecture = "Mathematical Shannon entropy calculation: -Σ p(x) * log2(p(x)) evaluated over 512-byte sliding buffer windows.",
+        requiredRole = "Security Auditor & Principal Architect",
+        producedArtifact = "Entropy Score Gauge & Packer Anomaly Classification",
+        targetTab = AppTab.FIRMWARE
+    ),
+    FunctionCapabilityItem(
+        id = "fallback_security_policy",
+        name = "Fallback Security Policy Module (Air-Gapped)",
+        category = FunctionCategory.FIRMWARE_BOOT,
+        icon = Icons.Default.Lock,
+        purpose = "Automatically engages Restricted Mode on network disconnect and executes local-only TFLite signature verification.",
+        capabilities = listOf(
+            "Detects network disconnects via ConnectivityManager NetworkCallback",
+            "Switches platform to Restricted Air-Gapped Mode instantly",
+            "Runs local-only pre-bundled TFLite models for binary classification",
+            "Allows zero-trust simulated air-gapped laboratory testing"
+        ),
+        technicalArchitecture = "FallbackSecurityPolicyModule with pre-bundled TensorFlow Lite neural models, token vocabularies, and local Room audit storage.",
+        requiredRole = "All Roles",
+        producedArtifact = "Restricted Mode Policy State & Local TFLite Verification Results",
+        targetTab = AppTab.FIRMWARE
+    ),
+    FunctionCapabilityItem(
+        id = "odin_verifier",
+        name = "Samsung Odin .tar.md5 Archive Verifier",
+        category = FunctionCategory.FIRMWARE_BOOT,
+        icon = Icons.Default.PhoneAndroid,
+        purpose = "Validates Samsung official factory flash packages and PIT (Partition Information Table) binary integrity.",
+        capabilities = listOf(
+            "Verifies trailer MD5 checksums on concatenated TAR archives",
+            "Parses embedded PIT tables for partition sizing and flash layout",
+            "Validates OEM digital signatures on CSC, AP, CP, and BL binaries"
+        ),
+        technicalArchitecture = "OdinFirmwareVerifier inspecting tar file directory blocks and calculating trailing 16-byte MD5 signatures.",
+        requiredRole = "Systems Engineer",
+        producedArtifact = "Odin Flash Package Verification Certificate",
+        targetTab = AppTab.FIRMWARE
+    ),
+    FunctionCapabilityItem(
+        id = "cert_pinning_engine",
+        name = "TLS Public Key Certificate Pinning Engine",
+        category = FunctionCategory.NETWORK_DEFENSE,
+        icon = Icons.Default.Shield,
+        purpose = "Restricts outbound telemetry and management connections strictly to pre-configured Genesis cryptographic public keys.",
+        capabilities = listOf(
+            "Prevents Man-in-the-Middle (MitM) TLS inspection by rogue root certificates",
+            "Enforces SHA-256 SPKI key pinning across all API endpoints",
+            "Provides instant UI switch to enable/disable strict pinning"
+        ),
+        technicalArchitecture = "NetworkSecurityConfig enforcement with OkHttp CertificatePinner integration.",
+        requiredRole = "Principal Architect",
+        producedArtifact = "Active TLS Pinning State & MitM Prevention Audit Log",
+        targetTab = AppTab.DEVICES
+    ),
+    FunctionCapabilityItem(
+        id = "network_vulnerability_scanner",
+        name = "Live Network & Interface Vulnerability Scanner",
+        category = FunctionCategory.NETWORK_DEFENSE,
+        icon = Icons.Default.Wifi,
+        purpose = "Scans active network interfaces (WiFi, Cellular, VPN) to detect rogue open ports, DHCP anomalies, and DNS spoofing.",
+        capabilities = listOf(
+            "Enumerates open inbound network ports and listening sockets",
+            "Detects rogue DHCP servers offering unvalidated gateway routes",
+            "Checks DNS resolvers against DNS cache poisoning signatures"
+        ),
+        technicalArchitecture = "NetworkVulnerabilityScanner probing local socket endpoints and inspecting Android NetworkCapabilities.",
+        requiredRole = "Systems Engineer & Security Auditor",
+        producedArtifact = "Network Vulnerability Assessment Report & Port Status",
+        targetTab = AppTab.DEVICES
+    ),
+    FunctionCapabilityItem(
+        id = "rogue_port_isolation",
+        name = "Rogue Port & ADB Emergency Isolation Kill Switch",
+        category = FunctionCategory.NETWORK_DEFENSE,
+        icon = Icons.Default.Close,
+        purpose = "Instantly shuts down unauthorized USB debugging bridges, external ADB routes, and non-pinned connections.",
+        capabilities = listOf(
+            "Terminates rogue TCP debugging ports (5555, 5037)",
+            "Disconnects unpinned telemetry bridges immediately",
+            "Locks down hardware communication channels in containment mode"
+        ),
+        technicalArchitecture = "Emergency socket shutdown and Android Settings secure ADB state toggle.",
+        requiredRole = "Principal Architect",
+        producedArtifact = "Port Isolation Status & Emergency Containment Log",
+        targetTab = AppTab.DEVICES
+    ),
+    FunctionCapabilityItem(
+        id = "forensic_audit_ledger",
+        name = "Tamper-Evident Forensic Incident Ledger",
+        category = FunctionCategory.FORENSICS_AUDIT,
+        icon = Icons.Default.BugReport,
+        purpose = "Records every security event, configuration change, and remediation action into an immutable Room database ledger.",
+        capabilities = listOf(
+            "Computes SHA-256 HMAC cryptographic signatures for each audit record",
+            "Provides chronological timeline with severity filters (CRITICAL, ALERT, SECURE, INFO)",
+            "Stores actor role, timestamp, subsystem category, and forensic metadata"
+        ),
+        technicalArchitecture = "SecurityAuditDatabase backed by Android Room and SQLite with cryptographic hash chaining.",
+        requiredRole = "All Roles (Read) / SecOps Admin (Write)",
+        producedArtifact = "Cryptographic Audit Log Stream & Incident Ledger View",
+        targetTab = AppTab.FORENSICS
+    ),
+    FunctionCapabilityItem(
+        id = "signed_csv_exporter",
+        name = "Forensic CSV Export Service with FileProvider",
+        category = FunctionCategory.FORENSICS_AUDIT,
+        icon = Icons.Default.Description,
+        purpose = "Generates tamper-evident, cryptographically signed CSV audit logs and shares them securely via Android FileProvider.",
+        capabilities = listOf(
+            "Exports full forensic event history to RFC-4180 compliant CSV files",
+            "Attaches cryptographic SHA-256 HMAC manifest headers",
+            "Dispatches secure content:// URI via system share sheets without file exposure"
+        ),
+        technicalArchitecture = "SecurityAuditCsvExportService backed by Android FileProvider (res/xml/file_paths.xml).",
+        requiredRole = "Security Auditor & Principal Architect",
+        producedArtifact = "Signed .csv File Shared via System Intent",
+        targetTab = AppTab.FORENSICS
+    ),
+    FunctionCapabilityItem(
+        id = "aegis_ai_copilot",
+        name = "Aegis AI Security Copilot (Gemini Pro/Flash)",
+        category = FunctionCategory.AI_COPILOT,
+        icon = Icons.Default.Psychology,
+        purpose = "Provides autonomous, context-aware AI threat analysis, zero-day CVE correlation, and remediation script generation.",
+        capabilities = listOf(
+            "Multi-step Thinking Mode for transparent chain-of-thought security rationale",
+            "Automated zero-trust prompt suggestions based on current device telemetry",
+            "Generates actionable remediation code (SELinux rules, shell fixes, config updates)",
+            "Evaluates proposal safety before executing platform remediations"
+        ),
+        technicalArchitecture = "AegisAiService integrating Gemini Pro / Flash models via REST API and generative AI endpoints.",
+        requiredRole = "All Roles",
+        producedArtifact = "AI Threat Intelligence Briefings, Remediation Plans, and Thinking Transcripts",
+        targetTab = AppTab.AEGIS_AI
+    ),
+    FunctionCapabilityItem(
+        id = "rbac_access_control",
+        name = "Role-Based Access Control (RBAC) Module",
+        category = FunctionCategory.GOVERNANCE_RBAC,
+        icon = Icons.Default.AdminPanelSettings,
+        purpose = "Enforces strict authorization boundaries across three operational tiers to prevent unauthorized modifications.",
+        capabilities = listOf(
+            "Principal Architect (Level 5): Full policy generation, lockdown, and firmware flashing",
+            "Security Auditor (Level 4): Read-only forensic review, CSV export, and attestation audits",
+            "Systems Engineer (Level 3): Diagnostics, partition analysis, and network scanning"
+        ),
+        technicalArchitecture = "AgentGovernanceService enforcing role capabilities across view model dispatchers.",
+        requiredRole = "Principal Architect (to switch or elevate roles)",
+        producedArtifact = "Current Role Authority Badge & Scoped Permission Enforcement",
+        targetTab = AppTab.GOVERNANCE
+    ),
+    FunctionCapabilityItem(
+        id = "biometric_gatekeeper",
+        name = "Biometric Security Gatekeeper & Auto-Timeout",
+        category = FunctionCategory.GOVERNANCE_RBAC,
+        icon = Icons.Default.Fingerprint,
+        purpose = "Protects sensitive security operations with hardware biometric authentication and a 5-minute background auto-lock.",
+        capabilities = listOf(
+            "Requires Class 3 Biometric (Fingerprint/Face) or Device Credential",
+            "Automatically locks application session after 5 minutes in background",
+            "Prevents shoulder-surfing and unauthorized physical access"
+        ),
+        technicalArchitecture = "BiometricSecurityManager and SecurityGatekeeper observing ProcessLifecycleOwner.",
+        requiredRole = "All Roles",
+        producedArtifact = "Biometric Verification Gate & Authenticated Session Token",
+        targetTab = AppTab.GOVERNANCE
+    ),
+    FunctionCapabilityItem(
+        id = "fingerprint_action_mapping",
+        name = "Multi-Fingerprint Biometric Action Mapping",
+        category = FunctionCategory.BIOMETRICS_HARDWARE,
+        icon = Icons.Default.Fingerprint,
+        purpose = "Maps specific enrolled fingers (Right Index, Left Ring, Left Pinky) to discrete mission-critical security actions.",
+        capabilities = listOf(
+            "Right Index: Authorized FRP Reset & Knox Attestation Reset",
+            "Left Ring: Emergency Master Zero-Trust Lockdown Trigger",
+            "Left Pinky: Forensic Cache & Network Telemetry Purge"
+        ),
+        technicalArchitecture = "BiometricSecurityManager mapping biometric prompt IDs to discrete SecurityActionType handlers.",
+        requiredRole = "Principal Architect & Security Auditor",
+        producedArtifact = "Fingerprint Action Bindings & Executed Trigger Audit Records",
+        targetTab = AppTab.DEVICE_SECURITY
+    ),
+    FunctionCapabilityItem(
+        id = "predictive_keyboard_engine",
+        name = "Acing Matrix Predictive Auto-Typing Engine",
+        category = FunctionCategory.BIOMETRICS_HARDWARE,
+        icon = Icons.Default.PhoneAndroid,
+        purpose = "On-device next-word predictive model engine for automated security pass-phrases and auto-typing simulation.",
+        capabilities = listOf(
+            "Local N-gram frequency model & TFLite candidate probability scoring",
+            "Accessibility Service integration for auto-injecting verified security credentials",
+            "Real-time keystroke latency and confidence visualization"
+        ),
+        technicalArchitecture = "AcingPredictiveKeyboardManager loading index_word.json and word_index.json assets.",
+        requiredRole = "Systems Engineer & Principal Architect",
+        producedArtifact = "Predicted Word Candidates & Keystroke Probability Matrices",
+        targetTab = AppTab.DEVICE_SECURITY
+    ),
+    FunctionCapabilityItem(
+        id = "shopify_license_validator",
+        name = "Shopify Enterprise License Validator",
+        category = FunctionCategory.BIOMETRICS_HARDWARE,
+        icon = Icons.Default.CheckCircle,
+        purpose = "Verifies cryptographic software entitlement licenses and binds authorized deployments to hardware identifiers.",
+        capabilities = listOf(
+            "Validates digital license signatures against Shopify partner public keys",
+            "Computes SHA-256 hardware device fingerprint",
+            "Enforces seat limits and tier features (Enterprise, Genesis Pro)"
+        ),
+        technicalArchitecture = "ShopifyLicenseValidator checking cryptographic HMAC license keys and expiration timestamps.",
+        requiredRole = "Security Auditor & Principal Architect",
+        producedArtifact = "Shopify License Verification Certificate & Entitlement Token",
+        targetTab = AppTab.DEVICE_SECURITY
+    ),
+    FunctionCapabilityItem(
+        id = "mitre_threat_intel",
+        name = "MITRE ATT&CK Threat Intelligence Matrix",
+        category = FunctionCategory.CORE_SECURITY,
+        icon = Icons.Default.Shield,
+        purpose = "Correlates active Android device vulnerabilities against industry standard MITRE ATT&CK mobile tactics.",
+        capabilities = listOf(
+            "Categorizes threats into Initial Access, Privilege Escalation, Credential Access, Defense Evasion",
+            "Visualizes threat vector distributions via dynamic Donut Chart",
+            "Matches active CVE identifiers with known exploitation vectors"
+        ),
+        technicalArchitecture = "Threat intelligence scoring engine computing weighted vector severity percentages.",
+        requiredRole = "Security Auditor & Analyst",
+        producedArtifact = "Threat Vector Distribution Chart & MITRE Technique Mapping",
+        targetTab = AppTab.THREAT_INTEL
+    )
+)
+
 /**
  * Comprehensive Functions & Capabilities Encyclopedia Dialog:
  * Details every single capability, its operational purpose, technical foundation,
@@ -125,317 +435,7 @@ fun CapabilitiesEncyclopediaDialog(
     onDismiss: () -> Unit,
     onNavigateToTab: (AppTab) -> Unit
 ) {
-    val functionDirectory = remember {
-        listOf(
-            FunctionCapabilityItem(
-                id = "device_trust_index",
-                name = "Device Trust Index (DTI) Scoring Engine",
-                category = FunctionCategory.CORE_SECURITY,
-                icon = Icons.Default.Speed,
-                purpose = "Evaluates multi-factor hardware security signals to produce a normalized 0-100 real-time security posture score.",
-                capabilities = listOf(
-                    "Aggregates 10 zero-trust vectors into a single trusted baseline",
-                    "Calculates dynamic penalty weights for unlocked bootloaders and unpinned TLS",
-                    "Provides instantaneous executive posture indicators"
-                ),
-                technicalArchitecture = "Calculated via DeviceTrustService by sampling hardware keystore attestation, SELinux kernel states, and AVB 2.0 tree validation.",
-                requiredRole = "Available to all roles (Principal, Auditor, Engineer)",
-                producedArtifact = "Normalized DTI Score (0-100) & Real-time Trust Posture Banner",
-                targetTab = AppTab.DASHBOARD
-            ),
-            FunctionCapabilityItem(
-                id = "avb_boot_chain",
-                name = "AVB 2.0 Android Verified Boot Validator",
-                category = FunctionCategory.CORE_SECURITY,
-                icon = Icons.Default.Shield,
-                purpose = "Cryptographically verifies the authenticity and integrity of boot partitions from bootloader to system image.",
-                capabilities = listOf(
-                    "Validates vbmeta.img RSA-4096 signature against Genesis OEM root key",
-                    "Verifies dm-verity Merkle tree root hashes for partition tamper-proofing",
-                    "Flags yellow/orange/red boot states caused by custom ROMs or modified boot images"
-                ),
-                technicalArchitecture = "AVB 2.0 specification parser with SHA-256 digest calculation across partition descriptors.",
-                requiredRole = "Security Auditor & Principal Architect",
-                producedArtifact = "AVB 2.0 Boot Chain Verification State & Tamper Alert Logs",
-                targetTab = AppTab.SECURITY_STATUS
-            ),
-            FunctionCapabilityItem(
-                id = "selinux_enforcement",
-                name = "SELinux Policy Generator & Enforcer",
-                category = FunctionCategory.CORE_SECURITY,
-                icon = Icons.Default.Security,
-                purpose = "Enforces Mandatory Access Control (MAC) domain boundaries and generates Type Enforcement (.te) security rules.",
-                capabilities = listOf(
-                    "Detects Permissive or Disabled SELinux states",
-                    "Generates custom Knox & AOSP Type Enforcement (.te) macro policies",
-                    "Isolates rogue system services from accessing raw device block nodes"
-                ),
-                technicalArchitecture = "SelinuxPolicyGenerator engine generating audit2allow-compatible policy rules and checking /sys/fs/selinux/enforce.",
-                requiredRole = "Principal Architect",
-                producedArtifact = "SELinux Type Enforcement (.te) Policy File & Enforcing Mode Switch",
-                targetTab = AppTab.SECURITY_STATUS
-            ),
-            FunctionCapabilityItem(
-                id = "firmware_partition_analyzer",
-                name = "Multi-Threaded Firmware Partition Analyzer",
-                category = FunctionCategory.FIRMWARE_BOOT,
-                icon = Icons.Default.FolderZip,
-                purpose = "Performs deep multi-stage binary inspection on flashed partition images (boot, vbmeta, vendor_boot, dtbo).",
-                capabilities = listOf(
-                    "Calculates real-time throughput in Megabytes/sec (MB/s)",
-                    "Parses Android Boot Header v2/v3/v4 magic signatures",
-                    "Computes cryptographic SHA-256 and SHA-1 checksums",
-                    "Simulates background firmware partition extraction and integrity checks"
-                ),
-                technicalArchitecture = "BuildPropAndFirmwareSecurityEngine leveraging Kotlin Coroutines for asynchronous streaming file parsing.",
-                requiredRole = "Systems Engineer & Principal Architect",
-                producedArtifact = "Firmware Partition Analysis Report & Integrity Verification Summary",
-                targetTab = AppTab.FIRMWARE
-            ),
-            FunctionCapabilityItem(
-                id = "shannon_entropy_analyzer",
-                name = "Shannon Byte Entropy Anomaly Engine",
-                category = FunctionCategory.FIRMWARE_BOOT,
-                icon = Icons.Default.AutoFixHigh,
-                purpose = "Analyzes raw binary byte distributions to detect encrypted payloads, obfuscated shellcode, and hidden packers.",
-                capabilities = listOf(
-                    "Measures byte randomness on a 0.0 to 8.0 Shannon scale",
-                    "Identifies high-entropy regions (>7.90) indicative of compressed or encrypted malware",
-                    "Visualizes entropy curves across individual partition blocks"
-                ),
-                technicalArchitecture = "Mathematical Shannon entropy calculation: -Σ p(x) * log2(p(x)) evaluated over 512-byte sliding buffer windows.",
-                requiredRole = "Security Auditor & Principal Architect",
-                producedArtifact = "Entropy Score Gauge & Packer Anomaly Classification",
-                targetTab = AppTab.FIRMWARE
-            ),
-            FunctionCapabilityItem(
-                id = "fallback_security_policy",
-                name = "Fallback Security Policy Module (Air-Gapped)",
-                category = FunctionCategory.FIRMWARE_BOOT,
-                icon = Icons.Default.Lock,
-                purpose = "Automatically engages Restricted Mode on network disconnect and executes local-only TFLite signature verification.",
-                capabilities = listOf(
-                    "Detects network disconnects via ConnectivityManager NetworkCallback",
-                    "Switches platform to Restricted Air-Gapped Mode instantly",
-                    "Runs local-only pre-bundled TFLite models for binary classification",
-                    "Allows zero-trust simulated air-gapped laboratory testing"
-                ),
-                technicalArchitecture = "FallbackSecurityPolicyModule with pre-bundled TensorFlow Lite neural models, token vocabularies, and local Room audit storage.",
-                requiredRole = "All Roles",
-                producedArtifact = "Restricted Mode Policy State & Local TFLite Verification Results",
-                targetTab = AppTab.FIRMWARE
-            ),
-            FunctionCapabilityItem(
-                id = "odin_verifier",
-                name = "Samsung Odin .tar.md5 Archive Verifier",
-                category = FunctionCategory.FIRMWARE_BOOT,
-                icon = Icons.Default.PhoneAndroid,
-                purpose = "Validates Samsung official factory flash packages and PIT (Partition Information Table) binary integrity.",
-                capabilities = listOf(
-                    "Verifies trailer MD5 checksums on concatenated TAR archives",
-                    "Parses embedded PIT tables for partition sizing and flash layout",
-                    "Validates OEM digital signatures on CSC, AP, CP, and BL binaries"
-                ),
-                technicalArchitecture = "OdinFirmwareVerifier inspecting tar file directory blocks and calculating trailing 16-byte MD5 signatures.",
-                requiredRole = "Systems Engineer",
-                producedArtifact = "Odin Flash Package Verification Certificate",
-                targetTab = AppTab.FIRMWARE
-            ),
-            FunctionCapabilityItem(
-                id = "cert_pinning_engine",
-                name = "TLS Public Key Certificate Pinning Engine",
-                category = FunctionCategory.NETWORK_DEFENSE,
-                icon = Icons.Default.Shield,
-                purpose = "Restricts outbound telemetry and management connections strictly to pre-configured Genesis cryptographic public keys.",
-                capabilities = listOf(
-                    "Prevents Man-in-the-Middle (MitM) TLS inspection by rogue root certificates",
-                    "Enforces SHA-256 SPKI key pinning across all API endpoints",
-                    "Provides instant UI switch to enable/disable strict pinning"
-                ),
-                technicalArchitecture = "NetworkSecurityConfig enforcement with OkHttp CertificatePinner integration.",
-                requiredRole = "Principal Architect",
-                producedArtifact = "Active TLS Pinning State & MitM Prevention Audit Log",
-                targetTab = AppTab.DEVICES
-            ),
-            FunctionCapabilityItem(
-                id = "network_vulnerability_scanner",
-                name = "Live Network & Interface Vulnerability Scanner",
-                category = FunctionCategory.NETWORK_DEFENSE,
-                icon = Icons.Default.Wifi,
-                purpose = "Scans active network interfaces (WiFi, Cellular, VPN) to detect rogue open ports, DHCP anomalies, and DNS spoofing.",
-                capabilities = listOf(
-                    "Enumerates open inbound network ports and listening sockets",
-                    "Detects rogue DHCP servers offering unvalidated gateway routes",
-                    "Checks DNS resolvers against DNS cache poisoning signatures"
-                ),
-                technicalArchitecture = "NetworkVulnerabilityScanner probing local socket endpoints and inspecting Android NetworkCapabilities.",
-                requiredRole = "Systems Engineer & Security Auditor",
-                producedArtifact = "Network Vulnerability Assessment Report & Port Status",
-                targetTab = AppTab.DEVICES
-            ),
-            FunctionCapabilityItem(
-                id = "rogue_port_isolation",
-                name = "Rogue Port & ADB Emergency Isolation Kill Switch",
-                category = FunctionCategory.NETWORK_DEFENSE,
-                icon = Icons.Default.Close,
-                purpose = "Instantly shuts down unauthorized USB debugging bridges, external ADB routes, and non-pinned connections.",
-                capabilities = listOf(
-                    "Terminates rogue TCP debugging ports (5555, 5037)",
-                    "Disconnects unpinned telemetry bridges immediately",
-                    "Locks down hardware communication channels in containment mode"
-                ),
-                technicalArchitecture = "Emergency socket shutdown and Android Settings secure ADB state toggle.",
-                requiredRole = "Principal Architect",
-                producedArtifact = "Port Isolation Status & Emergency Containment Log",
-                targetTab = AppTab.DEVICES
-            ),
-            FunctionCapabilityItem(
-                id = "forensic_audit_ledger",
-                name = "Tamper-Evident Forensic Incident Ledger",
-                category = FunctionCategory.FORENSICS_AUDIT,
-                icon = Icons.Default.BugReport,
-                purpose = "Records every security event, configuration change, and remediation action into an immutable Room database ledger.",
-                capabilities = listOf(
-                    "Computes SHA-256 HMAC cryptographic signatures for each audit record",
-                    "Provides chronological timeline with severity filters (CRITICAL, ALERT, SECURE, INFO)",
-                    "Stores actor role, timestamp, subsystem category, and forensic metadata"
-                ),
-                technicalArchitecture = "SecurityAuditDatabase backed by Android Room and SQLite with cryptographic hash chaining.",
-                requiredRole = "All Roles (Read) / SecOps Admin (Write)",
-                producedArtifact = "Cryptographic Audit Log Stream & Incident Ledger View",
-                targetTab = AppTab.FORENSICS
-            ),
-            FunctionCapabilityItem(
-                id = "signed_csv_exporter",
-                name = "Forensic CSV Export Service with FileProvider",
-                category = FunctionCategory.FORENSICS_AUDIT,
-                icon = Icons.Default.Description,
-                purpose = "Generates tamper-evident, cryptographically signed CSV audit logs and shares them securely via Android FileProvider.",
-                capabilities = listOf(
-                    "Exports full forensic event history to RFC-4180 compliant CSV files",
-                    "Attaches cryptographic SHA-256 HMAC manifest headers",
-                    "Dispatches secure content:// URI via system share sheets without file exposure"
-                ),
-                technicalArchitecture = "SecurityAuditCsvExportService backed by Android FileProvider (res/xml/file_paths.xml).",
-                requiredRole = "Security Auditor & Principal Architect",
-                producedArtifact = "Signed .csv File Shared via System Intent",
-                targetTab = AppTab.FORENSICS
-            ),
-            FunctionCapabilityItem(
-                id = "aegis_ai_copilot",
-                name = "Aegis AI Security Copilot (Gemini Pro/Flash)",
-                category = FunctionCategory.AI_COPILOT,
-                icon = Icons.Default.Psychology,
-                purpose = "Provides autonomous, context-aware AI threat analysis, zero-day CVE correlation, and remediation script generation.",
-                capabilities = listOf(
-                    "Multi-step Thinking Mode for transparent chain-of-thought security rationale",
-                    "Automated zero-trust prompt suggestions based on current device telemetry",
-                    "Generates actionable remediation code (SELinux rules, shell fixes, config updates)",
-                    "Evaluates proposal safety before executing platform remediations"
-                ),
-                technicalArchitecture = "AegisAiService integrating Gemini Pro / Flash models via REST API and generative AI endpoints.",
-                requiredRole = "All Roles",
-                producedArtifact = "AI Threat Intelligence Briefings, Remediation Plans, and Thinking Transcripts",
-                targetTab = AppTab.AEGIS_AI
-            ),
-            FunctionCapabilityItem(
-                id = "rbac_access_control",
-                name = "Role-Based Access Control (RBAC) Module",
-                category = FunctionCategory.GOVERNANCE_RBAC,
-                icon = Icons.Default.AdminPanelSettings,
-                purpose = "Enforces strict authorization boundaries across three operational tiers to prevent unauthorized modifications.",
-                capabilities = listOf(
-                    "Principal Architect (Level 5): Full policy generation, lockdown, and firmware flashing",
-                    "Security Auditor (Level 4): Read-only forensic review, CSV export, and attestation audits",
-                    "Systems Engineer (Level 3): Diagnostics, partition analysis, and network scanning"
-                ),
-                technicalArchitecture = "AgentGovernanceService enforcing role capabilities across view model dispatchers.",
-                requiredRole = "Principal Architect (to switch or elevate roles)",
-                producedArtifact = "Current Role Authority Badge & Scoped Permission Enforcement",
-                targetTab = AppTab.GOVERNANCE
-            ),
-            FunctionCapabilityItem(
-                id = "biometric_gatekeeper",
-                name = "Biometric Security Gatekeeper & Auto-Timeout",
-                category = FunctionCategory.GOVERNANCE_RBAC,
-                icon = Icons.Default.Fingerprint,
-                purpose = "Protects sensitive security operations with hardware biometric authentication and a 5-minute background auto-lock.",
-                capabilities = listOf(
-                    "Requires Class 3 Biometric (Fingerprint/Face) or Device Credential",
-                    "Automatically locks application session after 5 minutes in background",
-                    "Prevents shoulder-surfing and unauthorized physical access"
-                ),
-                technicalArchitecture = "BiometricSecurityManager and SecurityGatekeeper observing ProcessLifecycleOwner.",
-                requiredRole = "All Roles",
-                producedArtifact = "Biometric Verification Gate & Authenticated Session Token",
-                targetTab = AppTab.GOVERNANCE
-            ),
-            FunctionCapabilityItem(
-                id = "fingerprint_action_mapping",
-                name = "Multi-Fingerprint Biometric Action Mapping",
-                category = FunctionCategory.BIOMETRICS_HARDWARE,
-                icon = Icons.Default.Fingerprint,
-                purpose = "Maps specific enrolled fingers (Right Index, Left Ring, Left Pinky) to discrete mission-critical security actions.",
-                capabilities = listOf(
-                    "Right Index: Authorized FRP Reset & Knox Attestation Reset",
-                    "Left Ring: Emergency Master Zero-Trust Lockdown Trigger",
-                    "Left Pinky: Forensic Cache & Network Telemetry Purge"
-                ),
-                technicalArchitecture = "BiometricSecurityManager mapping biometric prompt IDs to discrete SecurityActionType handlers.",
-                requiredRole = "Principal Architect & Security Auditor",
-                producedArtifact = "Fingerprint Action Bindings & Executed Trigger Audit Records",
-                targetTab = AppTab.DEVICE_SECURITY
-            ),
-            FunctionCapabilityItem(
-                id = "predictive_keyboard_engine",
-                name = "Acing Matrix Predictive Auto-Typing Engine",
-                category = FunctionCategory.BIOMETRICS_HARDWARE,
-                icon = Icons.Default.PhoneAndroid,
-                purpose = "On-device next-word predictive model engine for automated security pass-phrases and auto-typing simulation.",
-                capabilities = listOf(
-                    "Local N-gram frequency model & TFLite candidate probability scoring",
-                    "Accessibility Service integration for auto-injecting verified security credentials",
-                    "Real-time keystroke latency and confidence visualization"
-                ),
-                technicalArchitecture = "AcingPredictiveKeyboardManager loading index_word.json and word_index.json assets.",
-                requiredRole = "Systems Engineer & Principal Architect",
-                producedArtifact = "Predicted Word Candidates & Keystroke Probability Matrices",
-                targetTab = AppTab.DEVICE_SECURITY
-            ),
-            FunctionCapabilityItem(
-                id = "shopify_license_validator",
-                name = "Shopify Enterprise License Validator",
-                category = FunctionCategory.BIOMETRICS_HARDWARE,
-                icon = Icons.Default.CheckCircle,
-                purpose = "Verifies cryptographic software entitlement licenses and binds authorized deployments to hardware identifiers.",
-                capabilities = listOf(
-                    "Validates digital license signatures against Shopify partner public keys",
-                    "Computes SHA-256 hardware device fingerprint",
-                    "Enforces seat limits and tier features (Enterprise, Genesis Pro)"
-                ),
-                technicalArchitecture = "ShopifyLicenseValidator checking cryptographic HMAC license keys and expiration timestamps.",
-                requiredRole = "Security Auditor & Principal Architect",
-                producedArtifact = "Shopify License Verification Certificate & Entitlement Token",
-                targetTab = AppTab.DEVICE_SECURITY
-            ),
-            FunctionCapabilityItem(
-                id = "mitre_threat_intel",
-                name = "MITRE ATT&CK Threat Intelligence Matrix",
-                category = FunctionCategory.CORE_SECURITY,
-                icon = Icons.Default.Shield,
-                purpose = "Correlates active Android device vulnerabilities against industry standard MITRE ATT&CK mobile tactics.",
-                capabilities = listOf(
-                    "Categorizes threats into Initial Access, Privilege Escalation, Credential Access, Defense Evasion",
-                    "Visualizes threat vector distributions via dynamic Donut Chart",
-                    "Matches active CVE identifiers with known exploitation vectors"
-                ),
-                technicalArchitecture = "Threat intelligence scoring engine computing weighted vector severity percentages.",
-                requiredRole = "Security Auditor & Analyst",
-                producedArtifact = "Threat Vector Distribution Chart & MITRE Technique Mapping",
-                targetTab = AppTab.THREAT_INTEL
-            )
-        )
-    }
+    val functionDirectory = allCapabilityItems
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(FunctionCategory.ALL) }

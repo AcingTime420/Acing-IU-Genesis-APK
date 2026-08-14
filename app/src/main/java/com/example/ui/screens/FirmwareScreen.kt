@@ -34,6 +34,8 @@ import androidx.fragment.app.FragmentActivity
 import com.example.data.FirmwareScanEntity
 import com.example.ui.AcingViewModel
 import com.example.ui.components.BuildPropFirmwareSecurityComponent
+import com.example.ui.components.FeatureDiscovery
+import com.example.ui.components.InfoTooltip
 import com.example.ui.components.OdinFirmwareVerifierView
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.SeverityBadge

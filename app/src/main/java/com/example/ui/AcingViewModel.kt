@@ -56,7 +56,8 @@ enum class AppTab {
     GOVERNANCE,
     THREAT_INTEL,
     DEVICE_SECURITY,
-    SECURITY_STATUS
+    SECURITY_STATUS,
+    SETTINGS
 }
 
 enum class SecurityRole(val label: String, val level: String) {
@@ -99,6 +100,52 @@ class AcingViewModel(application: Application) : AndroidViewModel(application) {
     private val networkScanner = NetworkVulnerabilityScanner()
     private val odinVerifier = OdinFirmwareVerifier()
     private val shopifyLicenseValidator = ShopifyLicenseValidator()
+
+    // Onboarding and Feature Discovery States
+    private val _hasSeenOnboarding = MutableStateFlow(false)
+    val hasSeenOnboarding: StateFlow<Boolean> = _hasSeenOnboarding.asStateFlow()
+
+    private val _hasSeenAiStatus = MutableStateFlow(false)
+    val hasSeenAiStatus: StateFlow<Boolean> = _hasSeenAiStatus.asStateFlow()
+
+    private val _hasSeenGatekeeper = MutableStateFlow(false)
+    val hasSeenGatekeeper: StateFlow<Boolean> = _hasSeenGatekeeper.asStateFlow()
+
+    fun setOnboardingSeen() {
+        _hasSeenOnboarding.value = true
+    }
+
+    fun setAiStatusSeen() {
+        _hasSeenAiStatus.value = true
+    }
+
+    fun setGatekeeperSeen() {
+        _hasSeenGatekeeper.value = true
+    }
+
+    fun resetOnboardingAndDiscovery() {
+        _hasSeenOnboarding.value = false
+        _hasSeenAiStatus.value = false
+        _hasSeenGatekeeper.value = false
+    }
+
+    fun toggleOfflineFallbackPolicy(enable: Boolean) {
+        viewModelScope.launch {
+            fallbackSecurityPolicy.setOfflinePolicyForced(enable)
+        }
+    }
+
+    fun recordAuditAction(category: String, title: String, details: String, severity: String) {
+        viewModelScope.launch {
+            loggingService.logOperation(
+                category = category,
+                title = title,
+                details = details,
+                severity = severity,
+                role = currentRole.value.label
+            )
+        }
+    }
 
     // Fallback Security Policy Module (Offline TFLite Model Verification)
     val fallbackSecurityPolicy = com.example.security.FallbackSecurityPolicyModule(application)

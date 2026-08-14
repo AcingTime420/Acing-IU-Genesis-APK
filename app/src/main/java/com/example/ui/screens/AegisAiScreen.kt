@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ai.ChatMessage
 import com.example.ui.AcingViewModel
+import com.example.ui.components.FeatureDiscovery
+import com.example.ui.components.InfoTooltip
 import com.example.ui.components.SectionHeader
 import com.example.ui.theme.AegisBorder
 import com.example.ui.theme.AegisDarkBg
@@ -219,12 +221,21 @@ fun AegisAiScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Reusable AI Status & Diagnostic View
+                            // Reusable AI Status & Diagnostic View with Feature Discovery
+                            val hasSeenAiStatus by viewModel.hasSeenAiStatus.collectAsState()
                             val configValidation = com.example.ai.GeminiConfigValidator.validateConfig()
-                            com.example.ui.components.AegisAiStatusView(
-                                validationResult = configValidation,
-                                onRefreshStatus = { viewModel.refreshApiKeyStatus() }
-                            )
+
+                            FeatureDiscovery(
+                                isFirstTime = !hasSeenAiStatus,
+                                onDismiss = { viewModel.setAiStatusSeen() },
+                                title = "Aegis AI Security & Enclave Status",
+                                description = "Live monitoring of Gemini API security, model thinking parameters, and on-device enclave communication."
+                            ) {
+                                com.example.ui.components.AegisAiStatusView(
+                                    validationResult = configValidation,
+                                    onRefreshStatus = { viewModel.refreshApiKeyStatus() }
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(8.dp))
 

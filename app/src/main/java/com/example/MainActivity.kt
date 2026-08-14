@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +57,7 @@ import com.example.ui.components.AuthenticationErrorView
 import com.example.ui.components.AutoResolutionStatusChip
 import com.example.ui.components.AutoScreenAdaptationContainer
 import com.example.ui.components.CapabilitiesEncyclopediaDialog
+import com.example.ui.components.OnboardingTutorial
 import com.example.ui.components.TutorialDialog
 import com.example.ui.components.WindowAdaptiveClass
 import androidx.compose.material3.NavigationRail
@@ -72,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.AcingViewModel
 import com.example.ui.AppTab
 import com.example.ui.screens.AegisAiScreen
+import com.example.ui.screens.CapabilitiesGuideScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DevicesScreen
 import com.example.ui.screens.FirmwareScreen
@@ -79,6 +82,7 @@ import com.example.ui.screens.ForensicsScreen
 import com.example.ui.screens.GovernanceScreen
 import com.example.ui.screens.DeviceSecurityScreen
 import com.example.ui.screens.SecurityDashboardScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.ThreatIntelligenceScreen
 import com.example.ui.theme.AegisBadgeIndigoBg
 import com.example.ui.theme.AegisBadgeIndigoText
@@ -139,9 +143,17 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val currentRole by viewModel.currentRole.collectAsState()
     val lockdownActive by viewModel.zeroTrustLockdown.collectAsState()
+    val hasSeenOnboarding by viewModel.hasSeenOnboarding.collectAsState()
 
     var showTutorialDialog by remember { mutableStateOf(false) }
     var showEncyclopediaDialog by remember { mutableStateOf(false) }
+    var showCapabilitiesGuideScreen by remember { mutableStateOf(false) }
+
+    // First Launch Interactive Onboarding Tutorial
+    OnboardingTutorial(
+        isFirstTime = !hasSeenOnboarding,
+        onComplete = { viewModel.setOnboardingSeen() }
+    )
 
     AutoScreenAdaptationContainer { metrics ->
         val useNavigationRail = metrics.adaptiveClass != WindowAdaptiveClass.COMPACT || metrics.orientationStr == "LANDSCAPE"
@@ -181,7 +193,8 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                         AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
                         AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
                         AppTab.AEGIS_AI to ("Aegis AI" to Icons.Default.SmartToy),
-                        AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings)
+                        AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings),
+                        AppTab.SETTINGS to ("Settings" to Icons.Default.Settings)
                     )
 
                     navItems.forEach { (tab, pair) ->
@@ -323,7 +336,8 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                                 AppTab.DEVICES to ("Devices" to Icons.Default.PhoneAndroid),
                                 AppTab.FORENSICS to ("Forensics" to Icons.Default.BugReport),
                                 AppTab.AEGIS_AI to ("Aegis AI" to Icons.Default.SmartToy),
-                                AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings)
+                                AppTab.GOVERNANCE to ("Security" to Icons.Default.AdminPanelSettings),
+                                AppTab.SETTINGS to ("Settings" to Icons.Default.Settings)
                             )
 
                             navItems.forEach { (tab, pair) ->
@@ -375,6 +389,16 @@ fun AcingGenesisApp(viewModel: AcingViewModel) {
                         AppTab.GOVERNANCE -> GovernanceScreen(viewModel = viewModel)
                         AppTab.THREAT_INTEL -> ThreatIntelligenceScreen(viewModel = viewModel)
                         AppTab.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
+                        AppTab.SETTINGS -> SettingsScreen(
+                            viewModel = viewModel,
+                            onNavigateToCapabilities = { showCapabilitiesGuideScreen = true }
+                        )
+                    }
+
+                    if (showCapabilitiesGuideScreen) {
+                        CapabilitiesGuideScreen(
+                            onNavigateBack = { showCapabilitiesGuideScreen = false }
+                        )
                     }
 
                     if (showTutorialDialog) {
